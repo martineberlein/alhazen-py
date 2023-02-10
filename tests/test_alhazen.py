@@ -16,8 +16,10 @@ class TestAlhazen(unittest.TestCase):
         result = alhazen.run()
 
         self.assertEqual(len(result), 10)
-        self.assertTrue(all([isinstance(tree, DecisionTreeClassifier) for tree in result]))
+        self.assertTrue(
+            all([isinstance(tree, DecisionTreeClassifier) for tree in result])
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
