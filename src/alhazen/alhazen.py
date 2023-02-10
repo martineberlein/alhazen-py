@@ -4,79 +4,10 @@ from IPython.core.display_functions import display
 
 display_output = False
 
-# ## Overview of the individual Tasks and _Alhazen_
-
-# ![title](img/picture.png)
-
-# Recent testing techniques, like fuzzing [[MFS90](https://dl.acm.org/doi/pdf/10.1145/96267.96279), [FMEH20](https://www.usenix.org/system/files/woot20-paper-fioraldi.pdf)], generate random input data and enhance or mutate them to trigger potential defects or software vulnerabilities. Although they have proven capable of detecting and generating erroneous input data, they often lack an explanation of why specific input data results in incorrect behavior. However, when diagnosing why a program fails, the first step is to determine the circumstances under which the program failed. Kampmann et al. [[KHSZ20](https://publications.cispa.saarland/3107/7/fse2020-alhazen.pdf)] presented an approach to automatically discover the circumstances of program behavior. Their approach associates the program’s failure with the syntac- tical features of the input data, allowing them to learn and extract the properties that result in the specific behavior. Their tool Alhazen can generate a diagnosis and explain why, for instance, a particular bug occurs. More formally, Alhazen forms a hypothetical model based on the observed inputs. Additional test inputs are generated and executed to refine or refute the hypothesis, eventually obtaining a prediction model of the circumstances of why the behavior in question takes place. Alhazen use a Decision Tree classifier to learn the association between the program behavior and the input features.
-
-# This notebook contains a reduced implementation _Alhazen_ that you have to complete.
-
-# ### **To complete the feedback loop of _Alhazen_ you have to fulfil five tasks:**
-# 
-# In total, a correct implementation of the will give 25 points.
-# 
-# Please refer to the individual notebooks for a detailed description of the individual tasks.
-# 
-# 1. Task: Read the paper by Kampmann et al. (This notebook)
-# 
-# **Activity 1:** Initial Setup and Feature Extraction 
-# 
-# 2. Task: Write the functions `extract_existence`, `extract_numeric` and `collect_features` (FeatureExtraction.ipynb) (**10Points**)
-# 3. Task: Write the function `transform_grammar` (TransformGrammar.ipynb) (**4Points**)
-# 
-# **Activity 2:** Train Classification Model
-# 
-# 4. Task: Write a function `train_tree` (DecisionTreeLearner.ipynb) (**4Points**)
-# 
-# **Activity 4:** Generate new Inputs Files
-# 
-# 5. Task: Write a function `generate_samples` (GenerateSamples.ipynb) (**5Points**)
-# 
-# 
-# Additionally, a correct explanation of the bug and multiple iterations of the feedback loop wil give a **2Points**.
-
-# ### Task 1: Read the paper of Kampmann et al.
-
-# <div class="alert alert-success alertsuccess">
-# [Task] Your first task is to read the provided <a href="https://publications.cispa.saarland/3107/7/fse2020-alhazen.pdf">paper</a> carefully to understand the proposed approach and underlying concepts.
-# </div>
-
-# # Introduction
-
-# To illustrate the use-case and the necessity of _Alhazen_, we start with a quick motivating example.
-
-# ## Motivating Example
-# <hr/>
-
-# ### Subject under Test: Calculator
-
-# To test _Alhazen_, we implemented the simple CALCULATOR example from the paper. We furthermore implemented a synthetic `BUG` that you have to explain utilizing the decision tree learned by _Alhazen_.
-
-# <div class="alert alert-danger" role="alert">
-# To make the bug explanation a little bit more challenging, we altered to calculator behavior. The introduced bug of Kampmann et al. is not the same as ours.
-# </div>
-
-# The calculator takes an input file as input and returns whether the bug was present or not (`BUG,` `NO_BUG`). Input files for the calculator have to conform to the `CALCULATOR`- Grammar. Let us have a look at the grammar definition:
-
-# In[ ]:
-
-
-# Lets load the grammar from the util-notebook
 from alhazen.helper import CALC_GRAMMAR
 
 for rule in CALC_GRAMMAR:
     print(rule.ljust(15), CALC_GRAMMAR[rule])
-
-# We see that the `CALCULATOR` Grammar consists of several production rules. The calculator subject will only accept inputs that conform to this grammar definition.
-
-# <div class="alert alert-info">
-# [Info]: We use the functionallity provided by <a href="https://www.fuzzingbook.org">The Fuzzingbook</a>. For a more detailed description of Grammars, have a look at the chapter <a href="https://www.fuzzingbook.org/html/Grammars.html">Fuzzing with Grammars</a>.
-# </div>
-
-# Now, lets load two initial input samples:
-
-# In[ ]:
 
 
 # feature extraction
@@ -147,7 +78,7 @@ class Alhazen:
 
 class Alhazen(Alhazen):
 
-    def run(self):
+    def run(self) -> List:
         for iteration in range(self._max_iter):
             print(f"Starting Iteration: " + str(iteration))
             self._loop(self._previous_samples)
