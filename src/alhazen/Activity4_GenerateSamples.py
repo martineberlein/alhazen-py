@@ -14,11 +14,11 @@
 # </div>
 
 # ```python
-# 
+#
 # def generate_samples(grammar: Grammar,
 #                      new_input_specifications: List[InputSpecification],
 #                      timeout: int) -> List[str]
-# 
+#
 # ```
 
 # **INPUT**:
@@ -52,10 +52,9 @@ from alhazen.Activity3_RequirementExtraction import InputSpecification, Requirem
 # In[ ]:
 
 
-def generate_samples(grammar: Grammar,
-                     new_input_specifications: List[InputSpecification],
-                     timeout: int) -> List[str]:
-    
+def generate_samples(
+    grammar: Grammar, new_input_specifications: List[InputSpecification], timeout: int
+) -> List[str]:
     # write your code here
     raise NotImplementedError("Func. generate samples: Function not implemented.")
 
@@ -73,19 +72,32 @@ from typing import List
 from itertools import chain
 
 from fuzzingbook.Parser import EarleyParser
-from fuzzingbook.GrammarFuzzer import DerivationTree, all_terminals, Grammar, tree_to_string
+from fuzzingbook.GrammarFuzzer import (
+    all_terminals,
+    Grammar,
+    tree_to_string,
+)
 from fuzzingbook.Grammars import Grammar, nonterminals, opts, is_valid_grammar
 from fuzzingbook.Grammars import reachable_nonterminals, unreachable_nonterminals
 
-from alhazen.Activity3_RequirementExtraction import InputSpecification, Requirement, get_all_input_specifications
-from alhazen.Activity1_1_FeatureExtraction import Feature, ExistenceFeature, NumericInterpretation
+from alhazen.Activity3_RequirementExtraction import (
+    InputSpecification,
+    Requirement,
+    get_all_input_specifications,
+)
+from alhazen.Activity1_1_FeatureExtraction import (
+    Feature,
+    ExistenceFeature,
+    NumericInterpretation,
+)
 from alhazen.helper import OracleResult, CALC_GRAMMAR, START_SYMBOL
 from alhazen.Activity3_RequirementExtraction import InputSpecification, Requirement
 from alhazen.Activity1_1_FeatureExtraction import get_all_features, collect_features
 
+
 def best_trees(forest, spec):
     samples = [tree_to_string(tree) for tree in forest]
-    fulfilled_fractions= []
+    fulfilled_fractions = []
     for sample in samples:
         gen_features = collect_features([sample], CALC_GRAMMAR)
 
@@ -95,7 +107,7 @@ def best_trees(forest, spec):
         for req in spec.requirements:
             # for now, interpret requirement(exists(<...>) <= number) as false and requirement(exists(<...>) > number) as true
             if isinstance(req.feature, ExistenceFeature):
-                expected = 1.0 if req.quant == '>' or req.quant == '>=' else 0.0
+                expected = 1.0 if req.quant == ">" or req.quant == ">=" else 0.0
                 actual = gen_features[req.feature.name][0]
                 if actual == expected:
                     fulfilled_count += 1
@@ -106,13 +118,13 @@ def best_trees(forest, spec):
                 expected_value = float(req.value)
                 actual_value = gen_features[req.feature.name][0]
                 fulfilled = False
-                if req.quant == '<':
+                if req.quant == "<":
                     fulfilled = actual_value < expected_value
-                elif req.quant == '<=':
+                elif req.quant == "<=":
                     fulfilled = actual_value <= expected_value
-                elif req.quant == '>':
+                elif req.quant == ">":
                     fulfilled = actual_value > expected_value
-                elif req.quant == '>=':
+                elif req.quant == ">=":
                     fulfilled = actual_value >= expected_value
 
                 if fulfilled:
@@ -134,10 +146,9 @@ def best_trees(forest, spec):
 
 
 # well, not perfect and probably not very robust. but it works :)
-def generate_samples_advanced(grammar: Grammar,
-                     new_input_specifications: List[InputSpecification],
-                     timeout: int) -> List[str]:
-    
+def generate_samples_advanced(
+    grammar: Grammar, new_input_specifications: List[InputSpecification], timeout: int
+) -> List[str]:
     # if there are no input specifications: generate some random samples
     if len(new_input_specifications) == 0:
         fuzzer = GrammarFuzzer(grammar)
@@ -147,10 +158,11 @@ def generate_samples_advanced(grammar: Grammar,
     final_samples = []
     each_spec_timeout = timeout / len(new_input_specifications)
 
-    rhs_nonterminals = grammar.keys()# list(chain(*[nonterminals(expansion) for expansion in grammar[rule]]))
+    rhs_nonterminals = (
+        grammar.keys()
+    )  # list(chain(*[nonterminals(expansion) for expansion in grammar[rule]]))
 
     fuzzer = GrammarFuzzer(grammar)
-
 
     for spec in new_input_specifications:
         done = False
@@ -181,7 +193,10 @@ def generate_samples_advanced(grammar: Grammar,
                 if valid:
                     nt, _ = curr
                     for req in spec.requirements:
-                        if isinstance(req.feature, NumericInterpretation) and nt == req.feature.key:
+                        if (
+                            isinstance(req.feature, NumericInterpretation)
+                            and nt == req.feature.key
+                        ):
                             # hacky: generate a derivation tree for this numeric interpretation
                             hacky_grammar = copy.deepcopy(grammar)
                             hacky_grammar["<start>"] = [nt]
@@ -210,14 +225,19 @@ def generate_samples_advanced(grammar: Grammar,
 
 
 from fuzzingbook.GrammarFuzzer import GrammarFuzzer
+from isla.derivation_tree import DerivationTree
+
 
 def generate_samples_random(grammar, new_input_specifications, num):
-    f = GrammarFuzzer(grammar ,max_nonterminals=50, log=False)
+    f = GrammarFuzzer(grammar, max_nonterminals=50, log=False)
     data = []
     for _ in range(num):
-        new_input = f.fuzz()
+        #new_input = f.fuzz()
+
+        new_input = DerivationTree.from_parse_tree(f.fuzz_tree())
+        assert isinstance(new_input, DerivationTree)
         data.append(new_input)
-        
+
     return data
 
 
@@ -227,30 +247,26 @@ def generate_samples_random(grammar, new_input_specifications, num):
 from alhazen.helper import OracleResult, CALC_GRAMMAR, START_SYMBOL
 
 # some tests for debugging
-exsqrt = ExistenceFeature('exists(<function>@0)', '<function>', 'sqrt')
-exdigit = ExistenceFeature('exists(<digit>)', '<digit>', '<digit>')
+exsqrt = ExistenceFeature("exists(<function>@0)", "<function>", "sqrt")
+exdigit = ExistenceFeature("exists(<digit>)", "<digit>", "<digit>")
 
-reqDigit = Requirement(exdigit, '>', '0.5')
-fbdDigit = Requirement(exdigit, '<=', '0.5')
+reqDigit = Requirement(exdigit, ">", "0.5")
+fbdDigit = Requirement(exdigit, "<=", "0.5")
 
-req0 = Requirement(exsqrt, '>', '-6.0')
+req0 = Requirement(exsqrt, ">", "-6.0")
 testspec0 = InputSpecification([req0, reqDigit])
-req1 = Requirement(exsqrt, '<=', '-6.0')
+req1 = Requirement(exsqrt, "<=", "-6.0")
 testspec1 = InputSpecification([req1, fbdDigit])
 
-numterm = NumericInterpretation('num(<term>)', '<term>')
-req2 = Requirement(numterm, '<', '-31.0')
+numterm = NumericInterpretation("num(<term>)", "<term>")
+req2 = Requirement(numterm, "<", "-31.0")
 testspec2 = InputSpecification([req2, req0, reqDigit])
 
-if __name__ == '__main__':
-    print('--generating samples--')
+if __name__ == "__main__":
+    print("--generating samples--")
     # samples = generate_samples(CALC_GRAMMAR, [testspec0, testspec1], 10)
     samples = generate_samples_advanced(CALC_GRAMMAR, [testspec2], 10)
     display(samples)
 
 
 # In[ ]:
-
-
-
-

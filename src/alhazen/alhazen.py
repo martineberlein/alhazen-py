@@ -2,11 +2,12 @@
 import logging
 import sys
 from typing import List, Callable, Set, Union
-import pandas
+from pandas import DataFrame, concat
 
 from fuzzingbook.Grammars import Grammar
-from fuzzingbook.Parser import DerivationTree, EarleyParser
+from fuzzingbook.Parser import EarleyParser
 from sklearn.tree import DecisionTreeClassifier
+from isla.derivation_tree import DerivationTree
 
 from alhazen.Activity1_1_FeatureExtraction import (
     extract_existence,
@@ -30,18 +31,18 @@ GENERATOR_TIMEOUT = 10  # timeout in seconds
 
 class Alhazen:
     def __init__(
-        self,
-        initial_inputs: List[str],
-        grammar: Grammar,
-        evaluation_function: Callable,
-        max_iter: int = 10,
-        generator_timeout: int = 10,
+            self,
+            initial_inputs: List[str],
+            grammar: Grammar,
+            evaluation_function: Callable,
+            max_iter: int = 10,
+            generator_timeout: int = 10,
     ):
         self._initial_inputs: List[str] = initial_inputs
         self._grammar: grammar = grammar
         self._prop: Callable[[DerivationTree], bool] = evaluation_function
         self._max_iter: int = max_iter
-        self._previous_samples: List[DerivationTree] = []
+        self._previous_samples: Set[DerivationTree] = set()
         self._data = None
         self._trees: List[DecisionTreeClassifier] = []
         self._generator_timeout: int = generator_timeout
@@ -49,11 +50,11 @@ class Alhazen:
         self._setup()
 
     def _setup(self):
-        parser = EarleyParser(self._grammar)
         for inp in self._initial_inputs:
             try:
-                for tree in parser.parse(inp):
-                    self._previous_samples.append(tree)
+                self._previous_samples.add(DerivationTree.from_parse_tree(
+                    next(EarleyParser(self._grammar).parse(inp))
+                ))
             except SyntaxError:
                 logging.error(
                     "Alhazen-py: Could not parse initial inputs with given grammar!"
@@ -75,7 +76,7 @@ class Alhazen:
             if self._data is None:
                 self._data = new_data
             else:
-                self._data = pandas.concat([self._data, new_data], sort=False)
+                self._data = concat([self._data, new_data], sort=False)
 
     def _finalize(self):
         return self._trees
@@ -87,9 +88,9 @@ class Alhazen:
 
         return self._finalize()
 
-    def _loop(self, sample_list: List[DerivationTree]):
+    def _loop(self, sample_list: Set[DerivationTree]):
         # obtain labels, execute samples (Initial Step, Activity 5)
-        exec_data = execute_samples(sample_list, self._prop)
+        exec_data = self._execute_input_files(sample_list)
 
         # collect features from the new samples (Activity 1)
         feature_data = collect_features(sample_list, self._grammar)
@@ -117,15 +118,22 @@ class Alhazen:
         self._previous_samples = new_samples
 
     def _execute_input_files(
-        self, inputs: Set[Union[DerivationTree, str]]
-    ) -> List[bool]:
+            self, inputs: Set[Union[DerivationTree, str]]
+    ) -> DataFrame:
         logging.info("Executing input files")
 
         exec_oracle = []
         for inp in inputs:
-            exec_oracle.append(self._prop(inp))
+            result = OracleResult.BUG if self._prop(inp) else OracleResult.NO_BUG
+            exec_oracle.append(
+                {
+                    # "sample_id": id.hex,
+                    # "sample": sample,
+                    # "subject": SUBJECT,
+                    "oracle": result
+                })
 
-        return exec_oracle
+        return DataFrame.from_records(exec_oracle)
 
 
 MAX_ITERATION = 20

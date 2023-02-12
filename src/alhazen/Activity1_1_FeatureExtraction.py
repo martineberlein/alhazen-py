@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional, Any, Dict
+from typing import List, Dict, Set
 from abc import ABC, abstractmethod
 from numpy import nanmax, isnan
 
@@ -13,8 +13,7 @@ from fuzzingbook.GrammarFuzzer import tree_to_string
 from fuzzingbook.Grammars import reachable_nonterminals
 from fuzzingbook.Parser import EarleyParser
 
-
-DerivationTree = Tuple[str, Optional[List[Any]]]
+from isla.derivation_tree import DerivationTree
 
 
 class Feature(ABC):
@@ -80,11 +79,11 @@ class ExistenceFeature(Feature):
 
         # First check if the current node can be matched with the rule
         if node == self.rule:
-            # Production existance feature
+            # Production existence feature
             if self.rule == self.key:
                 count = 1
 
-            # Production alternative existance feature
+            # Production alternative existence feature
             # We compare the children of the expansion with the actual children
             else:
                 expansion_children = list(
@@ -127,7 +126,7 @@ class NumericInterpretation(Feature):
         if node == self.rule:
             try:
                 # print(self.name, float(tree_to_string(derivation_tree)))
-                value = float(tree_to_string(derivation_tree))
+                value = float(tree_to_string(derivation_tree))  # TODO here fuzzingbook Derivation Tree
             except ValueError:
                 # print(self.name, float(tree_to_string(derivation_tree)), "err")
                 pass
@@ -271,21 +270,24 @@ def test_features(features: List[Feature]) -> None:
     print("All checks passed!")
 
 
-def collect_features(sample_list: List[str], grammar: Grammar) -> DataFrame:
+def collect_features(sample_list: Set[DerivationTree], grammar: Grammar) -> DataFrame:
     data = []
 
     # parse grammar and extract features
     all_features = get_all_features(grammar)
 
     # iterate over all samples
+    #  TODO trees are already Derivation trees!
     for sample in sample_list:
-        parsed_features = {"sample": sample}
+        inp = str(sample)
+
+        parsed_features = {"sample": inp}
         for feature in all_features:
             parsed_features[feature.name] = 0
 
         # Obtain the parse tree for each input file
-        earley = EarleyParser(grammar)
-        for tree in earley.parse(sample):
+        parser = EarleyParser(grammar)
+        for tree in parser.parse(inp):
             for feature in all_features:
                 parsed_features[feature.name] = feature.get_feature_value(tree)
 
