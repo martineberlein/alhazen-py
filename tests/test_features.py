@@ -1,12 +1,15 @@
 import unittest
-from typing import List
 
-from alhazen.Activity1_1_FeatureExtraction import Feature, ExistenceFeature, NumericInterpretation, get_all_features, compute_feature_values
+from alhazen.Activity1_1_FeatureExtraction import (
+    ExistenceFeature,
+    NumericInterpretation,
+    get_all_features,
+    compute_feature_values,
+)
 from alhazen_formalizations.calculator import grammar
 
 
 class TestFeatures(unittest.TestCase):
-
     def test_features(self):
         features = get_all_features(grammar)
 
@@ -166,20 +169,18 @@ class TestFeatures(unittest.TestCase):
 
         all_features = get_all_features(grammar)
         for sample in sample_list:
-            input_features = compute_feature_values(sample, grammar, all_features)
+            input_features = compute_feature_values(sample, grammar)
 
             for feature in all_features:
                 key = feature.name_rep()
-                # print(f"\t{key.ljust(50)}: {input_features[key]}")
-                # print('"' + key + '"' + ' : ' + str(input_features[key]) + ',')
                 expected = expected_feature_values[sample][key]
                 actual = input_features[key]
                 assert (
-                        expected == actual
+                    expected == actual
                 ), f"Wrong feature value for sample {sample} and feature {key}: expected {expected} but is {actual}."
 
         print("All checks passed!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
