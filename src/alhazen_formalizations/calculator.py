@@ -19,24 +19,13 @@ def prop(inp: DerivationTree) -> bool:
 
 
 grammar: Grammar = {
-    "<start>":
-        ["<function>(<term>)"],
-
-    "<function>":
-        ["sqrt", "tan", "cos", "sin"],
-
+    "<start>": ["<function>(<term>)"],
+    "<function>": ["sqrt", "tan", "cos", "sin"],
     "<term>": ["-<value>", "<value>"],
-
-    "<value>":
-        ["<integer>.<integer>",
-         "<integer>"],
-
-    "<integer>":
-        ["<digit><integer>", "<digit>"],
-
-    "<digit>":
-        ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    "<value>": ["<integer>.<integer>", "<integer>"],
+    "<integer>": ["<digit><integer>", "<digit>"],
+    "<digit>": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
 }
 START_SYMBOL = "<start>"
 
-initial_inputs = ['cos(12)', 'sqrt(-900)']
+initial_inputs = ["cos(12)", "sqrt(-900)"]
