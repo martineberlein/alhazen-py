@@ -10,7 +10,6 @@ from typing import Any
 
 
 class Bug(ABC):
-
     @abstractmethod
     def subject(self) -> str:
         """:return a name for the program under test"""
@@ -18,7 +17,7 @@ class Bug(ABC):
 
     @abstractmethod
     def execute_sample_list(self, execdir, samples) -> DataFrame:
-        """:return a DataFrame which contains one row for each sample. """
+        """:return a DataFrame which contains one row for each sample."""
         raise AssertionError("Overwrite in subclass.")
 
     @abstractmethod
@@ -57,7 +56,9 @@ def load_driver(file: Union[Path, str]) -> Bug:
     # add the parent dir of the module to the system path
     # this makes sure that the module can load file which are next to it in the file system
     sys.path.append(str(file.parent.resolve()))
-    loader = importlib.machinery.SourceFileLoader(file.name[:file.name.rfind(".")], str(file))
+    loader = importlib.machinery.SourceFileLoader(
+        file.name[: file.name.rfind(".")], str(file)
+    )
     # typing this as Any means that pyre will not complain about the create_bug() method
     drivermodule: Any = loader.load_module()
     bug = drivermodule.create_bug()

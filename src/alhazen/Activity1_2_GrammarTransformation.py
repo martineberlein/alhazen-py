@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 from IPython.core.display_functions import display
+
 # # Activity 1.2: Transform Grammar
-# 
+#
 # Let's first import the example grammar from the fuzzing book
 
 # <div class="alert alert-success alertsuccess">
@@ -31,7 +32,7 @@ import random
 random.seed(24)
 f = GrammarFuzzer(EXPR_GRAMMAR, max_nonterminals=3)
 test_input = f.fuzz()
-assert (test_input == tree_to_string(f.derivation_tree))
+assert test_input == tree_to_string(f.derivation_tree)
 
 if __name__ == "__main__":
     display(display_tree(f.derivation_tree))
@@ -43,15 +44,15 @@ if __name__ == "__main__":
 # You should write a function `transform_grammar` that given a sample input and a grammar, transforms it according to Kampmann et al.
 
 # ```python
-# 
+#
 # def transform_grammar(sample: str,
 #                      grammar: Grammar) -> Grammar
-# 
+#
 # ```
 
 # **INPUT**:
 # the function requires the following input parameter:
-# - sample: a input sample 
+# - sample: a input sample
 # - grammar: the grammar that should be transformed/extended
 
 # **OUTPUT**: the function should return the transformed and extended grammar.
@@ -62,10 +63,7 @@ if __name__ == "__main__":
 from fuzzingbook.Grammars import Grammar
 
 
-def transform_grammar(
-        sample: str,
-        grammar: Grammar
-        ) -> Grammar:
+def transform_grammar(sample: str, grammar: Grammar) -> Grammar:
     # write your code here
     raise NotImplementedError("Func. transform grammar: Function not Implemented")
 
@@ -82,11 +80,12 @@ from fuzzingbook.GrammarFuzzer import tree_to_string
 # Then, recursively iterate through the derivation tree and for each non-terminal,
 # add the derived word to the grammar
 
+
 def extend_grammar(derivation_tree, grammar):
     (node, children) = derivation_tree
 
     if is_nonterminal(node):
-        assert (node in grammar)
+        assert node in grammar
         word = tree_to_string(derivation_tree)
 
         # Only add to grammar if not already existent
@@ -113,10 +112,7 @@ from fuzzingbook.GrammarFuzzer import display_tree, tree_to_string
 START_SYMBOL = "<start>"
 
 
-def transform_grammar(
-        sample: str,
-        grammar: Grammar
-        ) -> Grammar:
+def transform_grammar(sample: str, grammar: Grammar) -> Grammar:
     # copy of the grammar
     transformed_grammar = copy.deepcopy(grammar)
 

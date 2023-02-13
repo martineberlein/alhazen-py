@@ -10,7 +10,8 @@ from typing import List
 
 def all_path(clf, node=0):
     """Iterate over all path in a decision tree. Path will be represented as
-    a list of integers, each integer is the index of a node in the clf.tree_ structure."""
+    a list of integers, each integer is the index of a node in the clf.tree_ structure.
+    """
     left = clf.tree_.children_left[node]
     right = clf.tree_.children_right[node]
 
@@ -24,7 +25,7 @@ def all_path(clf, node=0):
 
 
 def path_samples(clf, path):
-    """Returns the number of samples for this path. """
+    """Returns the number of samples for this path."""
     return clf.tree_.n_node_samples[path[-1]]
 
 
@@ -35,17 +36,36 @@ def generic_feature_names(clf):
 
 def box(clf, path, data=None, feature_names=None):
     """For a decision tree classifier clf and a path path (as returned, e.g. by all_path),
-    this method gives a pandas DataFrame with the min and max of each feature value on the given path."""
+    this method gives a pandas DataFrame with the min and max of each feature value on the given path.
+    """
 
     if feature_names is None:
         feature_names = generic_feature_names(clf)
     check_for_duplicates(feature_names)
     if data is None:
-        bounds = pandas.DataFrame([{'feature': c, 'min': -numpy.inf, 'max': numpy.inf} for c in feature_names],
-                                  columns=['feature', 'min', 'max']).set_index(['feature']).transpose()
+        bounds = (
+            pandas.DataFrame(
+                [
+                    {"feature": c, "min": -numpy.inf, "max": numpy.inf}
+                    for c in feature_names
+                ],
+                columns=["feature", "min", "max"],
+            )
+            .set_index(["feature"])
+            .transpose()
+        )
     else:
-        bounds = pandas.DataFrame([{'feature': c, 'min': data[c].min(), 'max': data[c].max()} for c in feature_names],
-                                  columns=['feature', 'min', 'max']).set_index(['feature']).transpose()
+        bounds = (
+            pandas.DataFrame(
+                [
+                    {"feature": c, "min": data[c].min(), "max": data[c].max()}
+                    for c in feature_names
+                ],
+                columns=["feature", "min", "max"],
+            )
+            .set_index(["feature"])
+            .transpose()
+        )
 
     for pos in range(0, len(path) - 1):
         node = path[pos]
@@ -54,18 +74,20 @@ def box(clf, path, data=None, feature_names=None):
         threshold = clf.tree_.threshold[node]
 
         if child == clf.tree_.children_left[node]:
-            bounds.at['max', feature] = threshold
+            bounds.at["max", feature] = threshold
         else:
-            bounds.at['min', feature] = threshold
+            bounds.at["min", feature] = threshold
     return bounds
 
 
 def rectangles(clf, colormap, data, feature_names=None):
     """yields matplotlib.patches rectangle objects. Each object represents a leaf of the tree."""
     if feature_names is None:
-        feature_names = ['in_x', 'in_y']
+        feature_names = ["in_x", "in_y"]
     if 2 != len(feature_names):
-        raise AssertionError("Rectangles can only be generated if there are at most 2 features.")
+        raise AssertionError(
+            "Rectangles can only be generated if there are at most 2 features."
+        )
 
     x_feature = feature_names[0]
     y_feature = feature_names[1]
@@ -74,10 +96,14 @@ def rectangles(clf, colormap, data, feature_names=None):
         b = box(clf, path, data=data, feature_names=feature_names)
         p = prediction_for_path(clf, path)
         c = colormap[p]
-        rect = mpp.Rectangle((b[x_feature]['min'], b[y_feature]['min']),  # coordinates
-                             b[x_feature]['max'] - b[x_feature]['min'],  # width
-                             b[y_feature]['max'] - b[y_feature]['min'],  # height
-                             alpha=.2, facecolor=c, edgecolor='k')
+        rect = mpp.Rectangle(
+            (b[x_feature]["min"], b[y_feature]["min"]),  # coordinates
+            b[x_feature]["max"] - b[x_feature]["min"],  # width
+            b[y_feature]["max"] - b[y_feature]["min"],  # height
+            alpha=0.2,
+            facecolor=c,
+            edgecolor="k",
+        )
         yield rect
 
 
@@ -96,8 +122,8 @@ def rule(clf, path, feature_names, class_names=None):
 
     feature_rules = []
     for fname in feature_names:
-        min_ = bounds[fname]['min']
-        max_ = bounds[fname]['max']
+        min_ = bounds[fname]["min"]
+        max_ = bounds[fname]["max"]
 
         if numpy.isinf(min_) and numpy.isinf(max_):
             pass  # no rule if both are unbound
@@ -108,7 +134,12 @@ def rule(clf, path, feature_names, class_names=None):
         else:
             feature_rules.append("{} in {:.4f} to {:.4f}".format(fname, min_, max_))
 
-    return " AND ".join(feature_rules), prediction, clf.tree_.impurity[path[-1]], clf.tree_.n_node_samples[path[-1]]
+    return (
+        " AND ".join(feature_rules),
+        prediction,
+        clf.tree_.impurity[path[-1]],
+        clf.tree_.n_node_samples[path[-1]],
+    )
 
 
 def rules(clf, class_names=None, feature_names=None):
@@ -118,9 +149,16 @@ def rules(clf, class_names=None, feature_names=None):
         feature_names = generic_feature_names(clf)
 
     samples = clf.tree_.n_node_samples[0]
-    return "\n".join(["IF {2} THEN PREDICT '{3}' ({0}: {4:.4f}, support: {5} / {1})"
-                     .format(clf.criterion, samples,
-                             *rule(clf, path, feature_names, class_names=class_names)) for path in all_path(clf)])
+    return "\n".join(
+        [
+            "IF {2} THEN PREDICT '{3}' ({0}: {4:.4f}, support: {5} / {1})".format(
+                clf.criterion,
+                samples,
+                *rule(clf, path, feature_names, class_names=class_names)
+            )
+            for path in all_path(clf)
+        ]
+    )
 
 
 def grouped_rules(clf, class_names=None, feature_names=None):
@@ -131,7 +169,9 @@ def grouped_rules(clf, class_names=None, feature_names=None):
 
     rules = {}
     for path in all_path(clf):
-        rulestr, clz, impurity, support = rule(clf, path, class_names=class_names, feature_names=feature_names)
+        rulestr, clz, impurity, support = rule(
+            clf, path, class_names=class_names, feature_names=feature_names
+        )
         if clz not in rules:
             rules[clz] = []
         rules[clz].append((rulestr, impurity, support))
@@ -141,7 +181,12 @@ def grouped_rules(clf, class_names=None, feature_names=None):
     for clz in rules:
         rulelist = rules[clz]
         res = res + "\n{}:\n\t".format(clz)
-        rl = ["{} ({}: {:.4f}, support: {}/{})".format(r, clf.criterion, impurity, support, samples) for r, impurity, support in rulelist]
+        rl = [
+            "{} ({}: {:.4f}, support: {}/{})".format(
+                r, clf.criterion, impurity, support, samples
+            )
+            for r, impurity, support in rulelist
+        ]
         res = res + "\n\tor ".join(rl)
     return res.lstrip()
 
@@ -161,7 +206,7 @@ def is_leaf(clf, node: int) -> bool:
 
 def leaf_label(clf, node: int) -> int:
     """returns the index of the class at this node. The node must be a leaf."""
-    assert(is_leaf(clf, node))
+    assert is_leaf(clf, node)
     occs = clf.tree_.value[node][0]
     idx = 0
     maxi = occs[idx]
@@ -217,7 +262,10 @@ def remove_unequal_decisions(clf):
     while changed:
         changed = False
         for node in range(0, clf.tree_.node_count):
-            if not is_leaf(clf, node) and (is_leaf(clf, clf.tree_.children_left[node]) and is_leaf(clf, clf.tree_.children_right[node])):
+            if not is_leaf(clf, node) and (
+                is_leaf(clf, clf.tree_.children_left[node])
+                and is_leaf(clf, clf.tree_.children_right[node])
+            ):
                 # both children of this node are leaves
                 left_label = leaf_label(clf, clf.tree_.children_left[node])
                 right_label = leaf_label(clf, clf.tree_.children_right[node])
@@ -226,5 +274,5 @@ def remove_unequal_decisions(clf):
                     clf.tree_.children_right[node] = -1
                     clf.tree_.feature[node] = -2
                     changed = True
-                    assert(left_label == leaf_label(clf, node))
+                    assert left_label == leaf_label(clf, node)
     return clf

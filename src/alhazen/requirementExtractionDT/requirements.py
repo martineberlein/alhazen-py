@@ -19,8 +19,8 @@ def tree_to_paths(tree, features: List[Feature]):
         # find the requirements
         box = treetools.box(tree, path, feature_names=features).transpose()
         for feature, row in box.iterrows():
-            mini = row['min']
-            maxi = row['max']
+            mini = row["min"]
+            maxi = row["max"]
             if (not np.isinf(mini)) or (not np.isinf(maxi)):
                 requirements.append(Requirement(feature, mini, maxi))
         paths.append(TreePath(None, is_bug, requirements))
@@ -29,7 +29,6 @@ def tree_to_paths(tree, features: List[Feature]):
 
 
 class Requirement:
-
     def __init__(self, feature: Feature, mini, maxi):
         self.__feature: Feature = feature
         self.__mini = mini
@@ -44,7 +43,9 @@ class Requirement:
             return data[self.__feature.name()] <= self.__maxi
         if self.__maxi is None:
             return self.__mini <= data[self.__feature.name()]
-        return (self.__mini <= data[self.__feature.name()]) & (data[self.__feature.name()] <= self.__maxi)
+        return (self.__mini <= data[self.__feature.name()]) & (
+            data[self.__feature.name()] <= self.__maxi
+        )
 
     def mini(self):
         return self.__mini
@@ -94,8 +95,10 @@ class Requirement:
             raise AssertionError("How is this possible?")
         else:
             if (not np.isinf(self.__mini)) and (not np.isinf(self.__maxi)):
-                return [f"{self.__feature.name()} in [{bounds.at['min', self.__feature.name()]},{self.__mini}]",
-                        f"{self.__feature.name()} in [{self.__maxi}, {bounds.at['max', self.__feature.name()]}]"]
+                return [
+                    f"{self.__feature.name()} in [{bounds.at['min', self.__feature.name()]},{self.__mini}]",
+                    f"{self.__feature.name()} in [{self.__maxi}, {bounds.at['max', self.__feature.name()]}]",
+                ]
             elif not np.isinf(self.__maxi):
                 return [f"{self.__feature.name()} <= {self.__maxi}"]
             else:
@@ -103,8 +106,10 @@ class Requirement:
 
     def get_neg_ext(self, bounds) -> List[str]:
         if (not np.isinf(self.__mini)) and (not np.isinf(self.__maxi)):
-            return [f"{self.__feature} in [{bounds.at['min', self.__feature]},{self.__mini}]",
-                    f"{self.__feature} in [{self.__maxi}, {bounds.at['max', self.__feature]}]"]
+            return [
+                f"{self.__feature} in [{bounds.at['min', self.__feature]},{self.__mini}]",
+                f"{self.__feature} in [{self.__maxi}, {bounds.at['max', self.__feature]}]",
+            ]
         elif not np.isinf(self.__maxi):
             return [f"{self.__feature} > {self.__maxi}"]
         else:
@@ -112,8 +117,9 @@ class Requirement:
 
 
 class TreePath:
-
-    def __init__(self, samplefile: Optional[Path], is_bug: bool, requirements: List[Requirement]):
+    def __init__(
+        self, samplefile: Optional[Path], is_bug: bool, requirements: List[Requirement]
+    ):
         self.__sample = samplefile
         self.__is_bug = is_bug
         self.__requirements: List[Requirement] = requirements
@@ -138,17 +144,17 @@ class TreePath:
 def lower_middle(start, end):
     if start == end:
         return start - abs(start)
-    return start + ((end - start)/2)
+    return start + ((end - start) / 2)
 
 
 def upper_middle(start, end):
     if start == end:
         return end + abs(end)
-    return start + ((end - start)/2)
+    return start + ((end - start) / 2)
 
 
 def min_digits(mini):
-    return int("1" + "".join([0] * int(mini-1)))
+    return int("1" + "".join([0] * int(mini - 1)))
 
 
 def max_digits(maxi):
