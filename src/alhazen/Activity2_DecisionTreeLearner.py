@@ -192,7 +192,6 @@ def train_tree(data):
     sample_bug_count = len(data[(data["oracle"].astype(str) == "BUG")])
     sample_count = len(data)
     data = data.fillna(0)
-    print(data)
 
     clf = DecisionTreeClassifier(
         min_samples_leaf=1,

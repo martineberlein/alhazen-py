@@ -88,7 +88,7 @@ class Alhazen:
 
     def run(self) -> List:
         for iteration in range(self._max_iter):
-            print(f"Starting Iteration: " + str(iteration))
+            logging.info(f"Starting Iteration: " + str(iteration))
             self._loop(self._previous_samples)
 
         return self._finalize()
@@ -135,15 +135,20 @@ class Alhazen:
 
         exec_oracle = []
         for inp in inputs:
-            result = OracleResult.BUG if self._prop(inp) else OracleResult.NO_BUG
-            exec_oracle.append(
-                {
-                    # "sample_id": id.hex,
-                    # "sample": sample,
-                    # "subject": SUBJECT,
-                    "oracle": result
-                }
-            )
+            try:
+                result = OracleResult.BUG if self._prop(inp) else OracleResult.NO_BUG
+                exec_oracle.append(
+                    {
+                        # "sample_id": id.hex,
+                        # "sample": sample,
+                        # "subject": SUBJECT,
+                        "oracle": result
+                    }
+                )
+            except SyntaxError:
+                logging.info(
+                    f"Input {str(inp)} is not a valid input of the program. You might want to rewrite your grammar!"
+                )
 
         return DataFrame.from_records(exec_oracle)
 
