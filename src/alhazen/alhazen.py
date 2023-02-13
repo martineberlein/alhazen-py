@@ -15,28 +15,25 @@ from alhazen.Activity1_1_FeatureExtraction import (
     collect_features,
     Feature,
 )
-from alhazen.Activity1_2_GrammarTransformation import transform_grammar
+
 from alhazen.Activity2_DecisionTreeLearner import train_tree
-from alhazen.Activity4_GenerateSamples import (
-    generate_samples_random as generate_samples,
-)
+from alhazen.generator import SimpleGenerator, Generator
 from alhazen.Activity3_RequirementExtraction import get_all_input_specifications
-from alhazen.Activity5_ExecuteSamples import execute_samples
 
 from alhazen.helper import OracleResult
-from alhazen.helper import show_tree
 
 GENERATOR_TIMEOUT = 10  # timeout in seconds
 
 
 class Alhazen:
     def __init__(
-            self,
-            initial_inputs: List[str],
-            grammar: Grammar,
-            evaluation_function: Callable,
-            max_iter: int = 10,
-            generator_timeout: int = 10,
+        self,
+        initial_inputs: List[str],
+        grammar: Grammar,
+        evaluation_function: Callable,
+        max_iter: int = 10,
+        generator_timeout: int = 10,
+        generator: Union[Generator | None] = None,
     ):
         self._initial_inputs: List[str] = initial_inputs
         self._grammar: grammar = grammar
@@ -47,14 +44,22 @@ class Alhazen:
         self._trees: List[DecisionTreeClassifier] = []
         self._generator_timeout: int = generator_timeout
 
+        if generator is None:
+            self._generator: Generator = SimpleGenerator(self._grammar)
+        else:
+            assert isinstance(generator, Generator)
+            self._generator: Generator = generator
+
         self._setup()
 
     def _setup(self):
         for inp in self._initial_inputs:
             try:
-                self._previous_samples.add(DerivationTree.from_parse_tree(
-                    next(EarleyParser(self._grammar).parse(inp))
-                ))
+                self._previous_samples.add(
+                    DerivationTree.from_parse_tree(
+                        next(EarleyParser(self._grammar).parse(inp))
+                    )
+                )
             except SyntaxError:
                 logging.error(
                     "Alhazen-py: Could not parse initial inputs with given grammar!"
@@ -83,7 +88,7 @@ class Alhazen:
 
     def run(self) -> List:
         for iteration in range(self._max_iter):
-            print(f"Starting Iteration: " + str(iteration))
+            logging.info(f"Starting Iteration: " + str(iteration))
             self._loop(self._previous_samples)
 
         return self._finalize()
@@ -112,26 +117,38 @@ class Alhazen:
 
         # generate new inputs according to the new input specifications
         # (Activity 4)
-        new_samples = generate_samples(
-            self._grammar, new_input_specifications, self._generator_timeout
-        )
+        new_samples = self._generate_inputs(new_input_specifications)
+
         self._previous_samples = new_samples
 
+    def _generate_inputs(self, input_specifications) -> Set[DerivationTree]:
+        inputs = set()
+        for specification in input_specifications:
+            inputs.add(self._generator.generate(input_specification=specification))
+
+        return inputs
+
     def _execute_input_files(
-            self, inputs: Set[Union[DerivationTree, str]]
+        self, inputs: Set[Union[DerivationTree, str]]
     ) -> DataFrame:
         logging.info("Executing input files")
 
         exec_oracle = []
         for inp in inputs:
-            result = OracleResult.BUG if self._prop(inp) else OracleResult.NO_BUG
-            exec_oracle.append(
-                {
-                    # "sample_id": id.hex,
-                    # "sample": sample,
-                    # "subject": SUBJECT,
-                    "oracle": result
-                })
+            try:
+                result = OracleResult.BUG if self._prop(inp) else OracleResult.NO_BUG
+                exec_oracle.append(
+                    {
+                        # "sample_id": id.hex,
+                        # "sample": sample,
+                        # "subject": SUBJECT,
+                        "oracle": result
+                    }
+                )
+            except SyntaxError:
+                logging.info(
+                    f"Input {str(inp)} is not a valid input of the program. You might want to rewrite your grammar!"
+                )
 
         return DataFrame.from_records(exec_oracle)
 

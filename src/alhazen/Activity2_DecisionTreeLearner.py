@@ -42,13 +42,43 @@ import graphviz
 
 # Features for each input, one dict per input
 features = [
-    {'function-sqrt': 1, 'function-cos': 0, 'function-sin': 0, 'number': -900}, # sqrt(-900)
-    {'function-sqrt': 0, 'function-cos': 1, 'function-sin': 0, 'number': 300}, # cos(300)
-    {'function-sqrt': 1, 'function-cos': 0, 'function-sin': 0, 'number': -1}, # sqrt(-1)
-    {'function-sqrt': 0, 'function-cos': 1, 'function-sin': 0, 'number': -10}, # cos(-10)
-    {'function-sqrt': 0, 'function-cos': 0, 'function-sin': 1, 'number': 36}, # sin(36)
-    {'function-sqrt': 0, 'function-cos': 0, 'function-sin': 1, 'number': -58}, # sin(-58)
-    {'function-sqrt': 1, 'function-cos': 0, 'function-sin': 0, 'number': 27}, # sqrt(27)
+    {
+        "function-sqrt": 1,
+        "function-cos": 0,
+        "function-sin": 0,
+        "number": -900,
+    },  # sqrt(-900)
+    {
+        "function-sqrt": 0,
+        "function-cos": 1,
+        "function-sin": 0,
+        "number": 300,
+    },  # cos(300)
+    {
+        "function-sqrt": 1,
+        "function-cos": 0,
+        "function-sin": 0,
+        "number": -1,
+    },  # sqrt(-1)
+    {
+        "function-sqrt": 0,
+        "function-cos": 1,
+        "function-sin": 0,
+        "number": -10,
+    },  # cos(-10)
+    {"function-sqrt": 0, "function-cos": 0, "function-sin": 1, "number": 36},  # sin(36)
+    {
+        "function-sqrt": 0,
+        "function-cos": 0,
+        "function-sin": 1,
+        "number": -58,
+    },  # sin(-58)
+    {
+        "function-sqrt": 1,
+        "function-cos": 0,
+        "function-sin": 0,
+        "number": 27,
+    },  # sqrt(27)
 ]
 
 
@@ -65,7 +95,7 @@ oracle = [
     OracleResult.NO_BUG,
     OracleResult.NO_BUG,
     OracleResult.NO_BUG,
-    OracleResult.NO_BUG
+    OracleResult.NO_BUG,
 ]
 
 # Transform to numpy array
@@ -91,17 +121,21 @@ clf = clf.fit(X, oracle_clean)
 # In[ ]:
 
 
-dot_data = tree.export_graphviz(clf, out_file=None, 
-                                feature_names=vec.get_feature_names_out(),  
-                                class_names=["BUG", "NO BUG"],  
-                                filled=True, rounded=True)  
-graph = graphviz.Source(dot_data)  
+dot_data = tree.export_graphviz(
+    clf,
+    out_file=None,
+    feature_names=vec.get_feature_names_out(),
+    class_names=["BUG", "NO BUG"],
+    filled=True,
+    rounded=True,
+)
+graph = graphviz.Source(dot_data)
 
 
 # In[ ]:
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     display(graph)
 
 
@@ -117,9 +151,9 @@ if __name__ == '__main__':
 # For _Alhazen's_ second activity (Train Classification Model), your are required to write a function `train_tree(data)` that trains a decision tree on a given data frame. `train_tree(data)` should return the learned decision tree.
 
 # ```python
-# 
+#
 # def train_tree(data: pandas.core.frame.DataFrame) -> sklearn.tree._classes.DecisionTreeClassifier
-# 
+#
 # ```
 
 # **INPUT**:
@@ -143,8 +177,8 @@ if __name__ == '__main__':
 from sklearn import tree
 from pandas import DataFrame
 
-def train_tree(data: DataFrame)-> tree._classes.DecisionTreeClassifier:
-    
+
+def train_tree(data: DataFrame) -> tree._classes.DecisionTreeClassifier:
     # write your code here
     raise NotImplementedError("Func. train tree: Function not Implemented")
 
@@ -158,16 +192,17 @@ def train_tree(data):
     sample_bug_count = len(data[(data["oracle"].astype(str) == "BUG")])
     sample_count = len(data)
     data = data.fillna(0)
-    print(data)
 
-    clf = DecisionTreeClassifier(min_samples_leaf=1,
-                                     min_samples_split=2,  # minimal value
-                                     max_features=None,
-                                     max_depth=5, # max depth of the decision tree
-                                     class_weight={str("BUG"): (1.0/sample_bug_count),
-                                                   str("NO_BUG"):
-                                                       (1.0/(sample_count - sample_bug_count))})
-    clf = clf.fit(data.drop('oracle', axis=1), data['oracle'].astype(str))
+    clf = DecisionTreeClassifier(
+        min_samples_leaf=1,
+        min_samples_split=2,  # minimal value
+        max_features=None,
+        max_depth=5,  # max depth of the decision tree
+        class_weight={
+            str("BUG"): (1.0 / sample_bug_count),
+            str("NO_BUG"): (1.0 / (sample_count - sample_bug_count)),
+        },
+    )
+    clf = clf.fit(data.drop("oracle", axis=1), data["oracle"].astype(str))
     # self.__tree = treetools.remove_infeasible(clf, features) # MARTIN: This is optional, but is a nice extesion that results in nicer decision trees
     return clf
-

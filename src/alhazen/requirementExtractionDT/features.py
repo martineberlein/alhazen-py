@@ -1,12 +1,12 @@
 import pandas
 import numpy
+
 # from antlr4 import *
 # from specsparser import SpecsParser, SpecsLexer, SpecsVisitor
 from typing import List
 
 
 class Feature:
-
     def __init__(self, key, readable_name):
         self._key = key
         self.__readable_name = readable_name
@@ -50,7 +50,6 @@ class Feature:
 
 
 class ExistenceFeature(Feature):
-
     def __init__(self, key: str, readable_name: str):
         super().__init__(key, readable_name)
 
@@ -74,7 +73,6 @@ class ExistenceFeature(Feature):
 
 
 class CharLengthFeature(Feature):
-
     def __init__(self, key: str, readable_name: str):
         super().__init__(key, readable_name)
 
@@ -86,7 +84,7 @@ class CharLengthFeature(Feature):
 
     def clean_data(self, data: pandas.DataFrame) -> pandas.DataFrame:
         # use min for nan, so non-existing symbols have negative length
-        data[self.name()] = data[self.name()].fillna(numpy.finfo('float32').min)
+        data[self.name()] = data[self.name()].fillna(numpy.finfo("float32").min)
         return data
 
     def name(self):
@@ -94,7 +92,6 @@ class CharLengthFeature(Feature):
 
 
 class QaLengthFeature(Feature):
-
     def __init__(self, key: str, readable_name: str):
         super().__init__(key, readable_name)
 
@@ -103,7 +100,7 @@ class QaLengthFeature(Feature):
 
     def clean_data(self, data: pandas.DataFrame) -> pandas.DataFrame:
         # use min for nan, so non-existing symbols have negative length
-        data[self.name()] = data[self.name()].fillna(numpy.finfo('float32').min)
+        data[self.name()] = data[self.name()].fillna(numpy.finfo("float32").min)
         return data
 
     def is_feasible(self, threshold: float) -> bool:
@@ -114,7 +111,6 @@ class QaLengthFeature(Feature):
 
 
 class MaxCharFeature(Feature):
-
     def __init__(self, key: str, readable_name: str):
         super().__init__(key, readable_name)
 
@@ -134,7 +130,6 @@ class MaxCharFeature(Feature):
 
 
 class MaxNumberFeature(Feature):
-
     def __init__(self, key: str, readable_name: str):
         super().__init__(key, readable_name)
 
@@ -202,10 +197,15 @@ def find_existence_index(features: List[Feature], feature: Feature):
 def extract_features(feature_file) -> List[Feature]:
     """This function extracts a sorted list of features from the features file, which is generated
     by substr grammar or the depth tool."""
-    depth_data = pandas.read_csv(feature_file,
-                                 dtype={"name": str, "depth": numpy.int32},
-                                 keep_default_na=False)
+    depth_data = pandas.read_csv(
+        feature_file, dtype={"name": str, "depth": numpy.int32}, keep_default_na=False
+    )
 
     depth_data["feature"] = depth_data["name"]
     sorted_features = depth_data.sort_values(by=["name"])
-    return list(map(lambda r: parse_feature(r[1]["name"], r[1]["readable name"]), sorted_features.iterrows()))
+    return list(
+        map(
+            lambda r: parse_feature(r[1]["name"], r[1]["readable name"]),
+            sorted_features.iterrows(),
+        )
+    )

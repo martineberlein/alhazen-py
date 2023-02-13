@@ -17,9 +17,13 @@ def turn_into_prob(feature):
     if feature.endswith("//prob"):
         return feature
     elif feature.endswith("//present"):
-        return feature[:-len("//present")] + "//prob"
+        return feature[: -len("//present")] + "//prob"
     else:
-        raise AssertionError("I have no idea how to find probabilities for {feature}".format(feature=feature))
+        raise AssertionError(
+            "I have no idea how to find probabilities for {feature}".format(
+                feature=feature
+            )
+        )
 
 
 def construct_feature_map(features):
@@ -40,21 +44,36 @@ def construct_feature_map(features):
 
 
 class BasiliskBasedGenerator(SampleGenerator):
-
-    def __init__(self, features: List[Feature], bug: bug_class.Bug, grammar_file, random_seed):
+    def __init__(
+        self, features: List[Feature], bug: bug_class.Bug, grammar_file, random_seed
+    ):
         self._callcount = 1
         self.__bug = bug
         self._features = features
         self.__grammar_file = grammar_file
         self.__random_seed = random_seed
-        assert "run_basilisk" in dir(self.__bug), "This subject is not prepared for basilisk!"
+        assert "run_basilisk" in dir(
+            self.__bug
+        ), "This subject is not prepared for basilisk!"
 
     def generate_samples(self, iter_dir, feature_file, tree, data):
         logging.info("Creating new samples with info from the tree only ...")
         # determine the bounds
-        bounds = pandas.DataFrame([{'feature': c.name(), 'min': data[c.name()].min(), 'max': data[c.name()].max()}
-                                   for c in self._features],
-                                  columns=['feature', 'min', 'max']).set_index(['feature']).transpose()
+        bounds = (
+            pandas.DataFrame(
+                [
+                    {
+                        "feature": c.name(),
+                        "min": data[c.name()].min(),
+                        "max": data[c.name()].max(),
+                    }
+                    for c in self._features
+                ],
+                columns=["feature", "min", "max"],
+            )
+            .set_index(["feature"])
+            .transpose()
+        )
 
         # go through tree leaf by leaf
         all_reqs = set()
@@ -74,16 +93,20 @@ class BasiliskBasedGenerator(SampleGenerator):
             all_reqs.add(str_req)
         self._run_specs(feature_file, iter_dir, all_reqs, samples)
 
-    def _run_specs(self, feature_file: Path, iter_dir: Path, all_reqs: List[str], samples) -> None:
+    def _run_specs(
+        self, feature_file: Path, iter_dir: Path, all_reqs: List[str], samples
+    ) -> None:
         # output spec
         spec_file = iter_dir / f"specs{self._callcount}"
-        with open(spec_file, 'w') as spec:
+        with open(spec_file, "w") as spec:
             for r in all_reqs:
                 spec.write(r)
                 spec.write("\n")
         self._generate_samples(spec_file, feature_file, iter_dir, samples)
 
-    def _generate_samples(self, spec_file: Path, feature_file: Path, iter_dir: Path, samples) -> None:
+    def _generate_samples(
+        self, spec_file: Path, feature_file: Path, iter_dir: Path, samples
+    ) -> None:
         """
         Run basilisk as a sample generator.
         spec_file: File which contains the specs for reach target
@@ -93,10 +116,14 @@ class BasiliskBasedGenerator(SampleGenerator):
         logging.info("Generating more samples ...")
         assert iter_dir / "features.csv" == feature_file
         try:
-            self.__bug.run_basilisk(self.__grammar_file, spec_file, iter_dir,
-                               iter_dir / f"basilisk_{self._callcount}.log.bz2",
-                               samples,
-                               random_seed=(self._callcount * self.__random_seed))
+            self.__bug.run_basilisk(
+                self.__grammar_file,
+                spec_file,
+                iter_dir,
+                iter_dir / f"basilisk_{self._callcount}.log.bz2",
+                samples,
+                random_seed=(self._callcount * self.__random_seed),
+            )
             self._callcount = self._callcount + 1
         except subprocess.CalledProcessError:
             # just log it and have alhazen deal with the fact that there are no samples
@@ -106,30 +133,42 @@ class BasiliskBasedGenerator(SampleGenerator):
             logging.exception(f"Basilisk timed out in {iter_dir}")
 
 
-
 class OccurrenceBasedGenerator(ReachTargetGenerator):
-
-    def __init__(self, features: List[Feature], bug: bug_class.Bug, grammar_file, random_seed):
+    def __init__(
+        self, features: List[Feature], bug: bug_class.Bug, grammar_file, random_seed
+    ):
         super().__init__(bug, grammar_file, random_seed)
         self._features: List[Feature] = features
 
     def generate_samples(self, iter_dir, feature_file, tree, data):
         logging.info("Creating new samples with info from the tree only ...")
         # determine the bounds
-        bounds = pandas.DataFrame([{'feature': c.name(), 'min': data[c.name()].min(), 'max': data[c.name()].max()}
-                                   for c in self._features],
-                                  columns=['feature', 'min', 'max']).set_index(['feature']).transpose()
+        bounds = (
+            pandas.DataFrame(
+                [
+                    {
+                        "feature": c.name(),
+                        "min": data[c.name()].min(),
+                        "max": data[c.name()].max(),
+                    }
+                    for c in self._features
+                ],
+                columns=["feature", "min", "max"],
+            )
+            .set_index(["feature"])
+            .transpose()
+        )
 
         # go through tree leaf by leaf
         all_reqs = set()
         for path in requirements.tree_to_paths(tree, self._features):
             # generate conditions
-            for i in range(0, len(path)+1):
+            for i in range(0, len(path) + 1):
                 reqs_list = []
-                bins = format(i, "#0{}b".format(len(path)+2))[2:]
+                bins = format(i, "#0{}b".format(len(path) + 2))[2:]
                 for p, b in zip(range(0, len(bins)), bins):
                     r = path.get(p)
-                    if '1' == b:
+                    if "1" == b:
                         reqs_list.append(r.get_neg(bounds))
                     else:
                         reqs_list.append([r.get_str(bounds)])
@@ -143,20 +182,21 @@ class OccurrenceBasedGenerator(ReachTargetGenerator):
             t = []
             for r in reqs:
                 for i in result:
-                    t.append(i+[r])
+                    t.append(i + [r])
             result = t
         return result
 
 
 class CorrelationOccurrenceBasedGenerator(OccurrenceBasedGenerator):
-
-    def __init__(self, features: List[Feature], bug: bug_class.Bug, grammar_file, random_seed):
+    def __init__(
+        self, features: List[Feature], bug: bug_class.Bug, grammar_file, random_seed
+    ):
         super().__init__(features, bug, grammar_file, random_seed)
 
     def generate_samples(self, iter_dir, feature_file, tree, data):
         logging.info("Checking correlations ...")
         feature_names = list(map(lambda f: f.name(), self._features))
-        corr = data[feature_names].corr(method='spearman')
+        corr = data[feature_names].corr(method="spearman")
 
         # delete small effects and diagonal
         for f1 in feature_names:

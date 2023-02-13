@@ -3,7 +3,7 @@
 from IPython.core.display_functions import display
 
 # # Executing Inpt Files
-# 
+#
 # This notebook contains the functionallity to execute the calculator subject with a list of input samples.
 
 # <div class="alert alert-info">
@@ -35,7 +35,11 @@ def sample_runner(sample):
     testcode = sample
 
     try:
-        exec(testcode, {"sqrt": task.sqrt, "tan": task.tan, "sin": task.sin, "cos": task.cos}, {})
+        exec(
+            testcode,
+            {"sqrt": task.sqrt, "tan": task.tan, "sin": task.sin, "cos": task.cos},
+            {},
+        )
         return OracleResult.NO_BUG
     except ZeroDivisionError:
         return OracleResult.BUG
@@ -71,7 +75,7 @@ sample_runner("undef_function(QUERY)")
 # The function `sample_runner(sample)` returns an `OracleResult.UNDEF` whenever the runner is not able to execute the sample.
 
 # <div class="alert alert-danger" role="alert">
-# To work reliably, you have to remove all samples from the learning set of Alhazen that do not conform to the grammar. 
+# To work reliably, you have to remove all samples from the learning set of Alhazen that do not conform to the grammar.
 # </div>
 
 # <hr/>
@@ -82,16 +86,18 @@ sample_runner("undef_function(QUERY)")
 from typing import Callable
 import uuid
 
+from fuzzingbook.Parser import DerivationTree, tree_to_string
 
-def prop_(prop, sample):
-    result = prop(str(sample))
+
+def prop_(prop, sample: DerivationTree):
+    result = prop(tree_to_string(sample)) if isinstance(sample, DerivationTree) else prop(sample)
+    # result = prop(tree_to_string(sample))
     if isinstance(result, bool):
         if result:
             return OracleResult.BUG
         return OracleResult.NO_BUG
     else:
         return OracleResult.UNDEF
-
 
 
 # executes a list of samples and return the execution outcome (label)
@@ -104,12 +110,14 @@ def execute_samples(sample_list, prop: Callable = None):
             result = sample_runner(sample)
         else:
             result = prop_(prop=prop, sample=sample)
-        data.append({
-            # "sample_id": id.hex,
-            # "sample": sample,
-            # "subject": SUBJECT,
-            "oracle": result
-        })
+        data.append(
+            {
+                # "sample_id": id.hex,
+                # "sample": sample,
+                # "subject": SUBJECT,
+                "oracle": result
+            }
+        )
     return pandas.DataFrame.from_records(data)
 
 
@@ -130,7 +138,8 @@ display(labels)
 
 
 # combine with the sample_list
-for i, row in enumerate(labels['oracle']): print(sample_list[i].ljust(30) + str(row))
+for i, row in enumerate(labels["oracle"]):
+    print(sample_list[i].ljust(30) + str(row))
 
 # To remove the undefined input samples, you could invoke something similar to this:
 
