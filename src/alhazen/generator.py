@@ -1,98 +1,27 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# # Activity 4: Generate New Samples from the Decision Tree and the learned Features
-
-# <div class="alert alert-success alertsuccess">
-# [Task] Implement the function <i>generate_samples(grammar, new_input_specifications, timeout)</i>, that generates a set of new inputs to refine or refute the hypothesis of the decision tree.
-# </div>
-
-# Please implement a _Grammar-Based Input Generator_ that generates new input samples from a List of `Input Specifications`. The Input Specifications are extracted from the decision tree boundaries in the previous Activity 3: _RequirementExtraction_. A Input Specification consists of **1 to n** many predicates or requirements (e.g. feature '>=' value, or 'num(term) <= 13'). Your task is to generate a new input for each InputSpecification. The new input must fulfill all the given requirements of an IputSpecification.
-
-# <div class="alert alert-info">
-# [Info]: For furter details, please refer to <b>Section 4.4 and 4.5</b> of the <a href="https://publications.cispa.saarland/3107/7/fse2020-alhazen.pdf">paper</a> and the Chapter <b><a href="https://www.fuzzingbook.org/html/GrammarFuzzer.html">Efficient Grammar Fuzzing</a></b> in the fuzzingbook.
-# </div>
-
-# ```python
-#
-# def generate_samples(grammar: Grammar,
-#                      new_input_specifications: List[InputSpecification],
-#                      timeout: int) -> List[str]
-#
-# ```
-
-# **INPUT**:
-# the function requires the following input parameter:
-# - grammar: the grammar this is used to produce new inputs (e.g. the CALCULATOR-Grammar)
-# - new_input_specification: a List of new inputs specifications (List\[InputSpecification\])
-# - timeout: a max time budget. Return the generated inputs when the timebudget is exeeded.
-
-# **OUTPUT**: the function should return a list of new inputs that are specified by the given input specifications.
-
-# <div class="alert alert-info">
-# [Hint]: You can implement the functionality described in the paper or develop your own method of generating new inputs that fulfill the given input specification. (For instance, you can generate inputs with the grammar and check whether one of the inputs meets one of the input specifications. However, this may not be very efficient and may require a lot of time.)
-# </div>
-
-# <div class="alert alert-danger" role="alert">
-# The classes Inputspecifications and Requirements require the functionallity of the FeatureExtration. You might want to finish the feature-extraction task first.
-# </div>
-
-# In[ ]:
-
-
-from typing import List
-
-from IPython.core.display_functions import display
-from fuzzingbook.Grammars import Grammar
-
-from alhazen.helper import OracleResult, CALC_GRAMMAR, START_SYMBOL
-from alhazen.Activity3_RequirementExtraction import InputSpecification, Requirement
-
-
-# In[ ]:
-
-
-def generate_samples(
-    grammar: Grammar, new_input_specifications: List[InputSpecification], timeout: int
-) -> List[str]:
-    # write your code here
-    raise NotImplementedError("Func. generate samples: Function not implemented.")
-
-
-# Possible solution for the function `generate_samples`:
-
-# In[4]:
-
-
 import time
 import copy
-from copy import deepcopy
 import random
-from typing import List
-from itertools import chain
+from abc import ABC, abstractmethod
+from typing import List, Tuple
+
+import pandas
 
 from fuzzingbook.Parser import EarleyParser
 from fuzzingbook.GrammarFuzzer import (
-    all_terminals,
-    Grammar,
     tree_to_string,
 )
-from fuzzingbook.Grammars import Grammar, nonterminals, opts, is_valid_grammar
-from fuzzingbook.Grammars import reachable_nonterminals, unreachable_nonterminals
+from fuzzingbook.Grammars import Grammar, is_valid_grammar
 
-from alhazen.Activity3_RequirementExtraction import (
-    InputSpecification,
-    Requirement,
-    get_all_input_specifications,
-)
 from alhazen.Activity1_1_FeatureExtraction import (
-    Feature,
     ExistenceFeature,
     NumericInterpretation,
 )
-from alhazen.helper import OracleResult, CALC_GRAMMAR, START_SYMBOL
+from alhazen.helper import OracleResult, CALC_GRAMMAR
 from alhazen.Activity3_RequirementExtraction import InputSpecification, Requirement
 from alhazen.Activity1_1_FeatureExtraction import get_all_features, collect_features
+
+from fuzzingbook.GrammarFuzzer import GrammarFuzzer
+from isla.derivation_tree import DerivationTree
 
 
 def best_trees(forest, spec):
@@ -160,7 +89,7 @@ def generate_samples_advanced(
 
     rhs_nonterminals = (
         grammar.keys()
-    )  # list(chain(*[nonterminals(expansion) for expansion in grammar[rule]]))
+    )  # list(chain(*[non-terminals(expansion) for expansion in grammar[rule]]))
 
     fuzzer = GrammarFuzzer(grammar)
 
@@ -219,21 +148,10 @@ def generate_samples_advanced(
     return final_samples
 
 
-# ### Other interesting generator functions:
-
-# In[2]:
-
-
-from fuzzingbook.GrammarFuzzer import GrammarFuzzer
-from isla.derivation_tree import DerivationTree
-
-
-def generate_samples_random(grammar, new_input_specifications, num):
+def generate_samples_random(grammar, num):
     f = GrammarFuzzer(grammar, max_nonterminals=50, log=False)
     data = []
     for _ in range(num):
-        #new_input = f.fuzz()
-
         new_input = DerivationTree.from_parse_tree(f.fuzz_tree())
         assert isinstance(new_input, DerivationTree)
         data.append(new_input)
@@ -241,32 +159,105 @@ def generate_samples_random(grammar, new_input_specifications, num):
     return data
 
 
-# In[8]:
+class Generator(ABC):
+    def __init__(self, grammar, timeout: int = 10):
+        assert is_valid_grammar(grammar)
+        self.grammar: Grammar = grammar
+        self.timeout: int = timeout
+
+    @abstractmethod
+    def generate(self, **kwargs) -> DerivationTree:
+        raise NotImplementedError
 
 
-from alhazen.helper import OracleResult, CALC_GRAMMAR, START_SYMBOL
+class SimpleGenerator(Generator):
+    """
+    Simple Generator to produce random inputs as Derivation trees.
+    """
 
-# some tests for debugging
-exsqrt = ExistenceFeature("exists(<function>@0)", "<function>", "sqrt")
-exdigit = ExistenceFeature("exists(<digit>)", "<digit>", "<digit>")
+    def __init__(self, grammar: Grammar):
+        super().__init__(grammar)
 
-reqDigit = Requirement(exdigit, ">", "0.5")
-fbdDigit = Requirement(exdigit, "<=", "0.5")
+    def generate(self, **kwargs) -> DerivationTree:
+        f = GrammarFuzzer(self.grammar, max_nonterminals=50, log=False)
+        new_input = DerivationTree.from_parse_tree(f.fuzz_tree())
+        assert isinstance(new_input, DerivationTree)
 
-req0 = Requirement(exsqrt, ">", "-6.0")
-testspec0 = InputSpecification([req0, reqDigit])
-req1 = Requirement(exsqrt, "<=", "-6.0")
-testspec1 = InputSpecification([req1, fbdDigit])
-
-numterm = NumericInterpretation("num(<term>)", "<term>")
-req2 = Requirement(numterm, "<", "-31.0")
-testspec2 = InputSpecification([req2, req0, reqDigit])
-
-if __name__ == "__main__":
-    print("--generating samples--")
-    # samples = generate_samples(CALC_GRAMMAR, [testspec0, testspec1], 10)
-    samples = generate_samples_advanced(CALC_GRAMMAR, [testspec2], 10)
-    display(samples)
+        return new_input
 
 
-# In[ ]:
+class AdvancedGenerator(Generator):
+    """
+    Generator to produce new inputs according to a given set of input specifications.
+    """
+
+    def __init__(self, grammar: Grammar, timeout: int = 10):
+        super().__init__(grammar, timeout=timeout)
+
+    @staticmethod
+    def validate_requirement(
+        sample_features: pandas.DataFrame, requirement: Requirement
+    ) -> bool:
+        if isinstance(requirement.feature, ExistenceFeature):
+            expected = (
+                1.0 if requirement.quant == ">" or requirement.quant == ">=" else 0.0
+            )
+            actual = sample_features[requirement.feature.name][0]
+            if actual == expected:
+                return True
+            return False
+
+        elif isinstance(requirement.feature, NumericInterpretation):
+            expected = float(requirement.value)
+            actual_value = sample_features[requirement.feature.name][0]
+
+            match requirement.quant:
+                case "<":
+                    return actual_value < expected
+                case "<":
+                    return actual_value <= expected
+                case ">":
+                    return actual_value > expected
+                case ">=":
+                    return actual_value >= expected
+
+    def validate(
+        self, sample: DerivationTree, specification: InputSpecification
+    ) -> Tuple[bool, int]:
+        """
+        Checks whether an input fulfills a given input specification. The result is the number of unfulfilled
+        requirements. Thus, 0 corresponds to a perfectly fulfilled input.
+        Args:
+            sample: input sample to be checked
+            specification: an input specification with requirements for a given input
+
+        Returns:
+            Tuple[bool, str]
+        """
+        assert isinstance(sample, DerivationTree)
+        features = collect_features({sample}, self.grammar)
+
+        count = len(specification.requirements)
+        for requirement in specification.requirements:
+            if self.validate_requirement(features, requirement=requirement):
+                count -= 1
+
+        return True if count == 0 else False, count
+
+    def generate(self, input_specification: InputSpecification) -> DerivationTree:
+        generator = SimpleGenerator(self.grammar)
+        if not input_specification:
+            return generator.generate()
+
+        samples = [generator.generate() for _ in range(100)]
+        queue = []
+        for sample in samples:
+            validated, unfulfilled = self.validate(sample, input_specification)
+            if validated:
+                return sample
+            queue.append((sample, unfulfilled))
+
+
+class ISLAGenerator(Generator):
+    def generate(self, **kwargs) -> DerivationTree:
+        raise NotImplementedError
