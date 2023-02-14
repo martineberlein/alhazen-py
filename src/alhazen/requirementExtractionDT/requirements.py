@@ -9,7 +9,7 @@ from . import treetools
 from .features import Feature
 
 
-def tree_to_paths(tree, features: List[Feature]):
+def tree_to_paths(tree, features: List[Feature | str]):
     logging.info("Extracting requirements from tree ...")
     paths = []
     # go through tree leaf by leaf

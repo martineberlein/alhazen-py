@@ -1,20 +1,19 @@
 #!/usr/bin/env python
-# coding: utf-8
 
-# # Requirement Extraction from the Decision Tree
-
-# <div class="alert alert-info">
-# [Info]: This notebook does not contain any tasks for you, however, it can be usefull to get a better understanding of the 'get_all_input_specifications(...)' function, as well as the class-defintitions for 'Requirement' and 'InputSpecification'. You will need these to generate new input samples.
-# </div>
-# <hr/>
-
-# In this section, we will extract the learned features from the decision tree
-
-# In[ ]:
-
-
-from sklearn.feature_extraction import DictVectorizer
 import pandas
+from typing import List
+from alhazen.Activity1_1_FeatureExtraction import Feature
+
+from fuzzingbook.GrammarFuzzer import GrammarFuzzer
+from fuzzingbook.Grammars import EXPR_GRAMMAR, Expansion
+from fuzzingbook.Parser import EarleyParser, tree_to_string
+import string
+from fuzzingbook.Grammars import Grammar, is_valid_grammar
+from sklearn.tree import DecisionTreeClassifier
+from sklearn import tree
+import graphviz
+
+from alhazen.requirementExtractionDT.requirements import tree_to_paths
 
 # Features for each input, one dict per input
 features = [
@@ -41,9 +40,6 @@ oracle = ["BUG", "NO_BUG", "BUG", "NO_BUG", "NO_BUG", "NO_BUG", "NO_BUG"]
 feature_names = ["function-sqrt", "function-cos", "function-sin", "number"]
 X_data = pandas.DataFrame.from_records(features)
 
-from sklearn.tree import DecisionTreeClassifier
-from sklearn import tree
-
 # Fix the random state to produce a deterministic result (for illustration purposes only)
 clf = DecisionTreeClassifier(random_state=10)
 
@@ -65,39 +61,11 @@ dot_data = tree.export_graphviz(
 )
 graph = graphviz.Source(dot_data)
 
-
-# <div class="alert alert-danger" role="alert">
-# Note: The sklearn DictVectorizer uses an internal sort function as default. This will result in different feature_name indices. If you want to use the Dictvectorizer please ensure that you only acess the feature_names with the function <i>vec.get_feature_names_out()</i>. We recommend that you use the pandas Dataframe, since this is also the format used in the feedback loop.
-# </div>
-
-# In[ ]:
-
-
 graph
 
 
-# In[ ]:
-
-
-from alhazen.requirementExtractionDT.requirements import tree_to_paths
-
-# We provide a functionallity to extract the paths from a decison tree.
 all_paths = tree_to_paths(clf, feature_names)
 
-# If you use the sklearn.DictVectorizer you have to use the feature_names extracted from the vectorizer,
-# and invoke something similar to this:
-
-# all_paths = tree_to_paths(clf, vec.get_feature_names_out())
-
-
-# #### Lets test wheather we extracted the correct paths
-
-# In[ ]:
-
-
-from typing import Tuple
-
-# List[ ('Paths': str, Prediction_class: bool) ]
 expected_paths = [
     ("function-sqrt <= 0.5", False),
     ("function-sqrt > 0.5 number <= 13.0", True),
@@ -112,17 +80,6 @@ for count, path in enumerate(all_paths):
         count
     ], f"{string_path, path.is_bug()} is not equal to {expected_paths[count]}"
 
-
-# If no assertion is triggered, then everything seems to work.
-
-# ## The next step is to negate the requirements on a path to refine and refute the decision tree
-
-# First we will determine some boundaries to obtain better path negations.
-
-# In[ ]:
-
-
-import pandas
 
 x = pandas.DataFrame.from_records(features)
 bounds = (
@@ -157,18 +114,6 @@ for count, path in enumerate(all_paths):
     assert (negated_string_path) == expected_all_paths_negated[
         count
     ], f"{negated_string_path} is not equal to {expected_all_paths_negated[count]}"
-
-
-# If no assertion is triggered, then everything seems to work.
-
-# ## Systematically negating paths
-
-# We will use the Decision tree and extract new input specifications to refine or refute our hypothesis (See paper Section 4.1 - Extracting Prediction Paths). These input specifications will be parsed to the input generator that tries to generate new inputs that fullfil the defined input specifications.
-
-# In[ ]:
-
-
-import pandas
 
 
 def extracting_prediction_paths(clf, feature_names, data):
@@ -214,36 +159,7 @@ def all_combinations(reqs_lists):
     return result
 
 
-# We will use the Decision tree and extract new input specifications to refine or refute our hypothesis (See paper Section 4.1 - Extracting Prediction Paths). These input specifications will be parsed to the input generator that tries to generate new inputs that fullfil the defined input specifications.
-
-# In[ ]:
-
-
 new_prediction_paths = extracting_prediction_paths(clf, feature_names, data=x)
-
-
-# We extracted these paths:
-# ```python
-# expected_paths = [('function-sqrt <= 0.5'),
-#                   ('function-sqrt > 0.5 number <= 13.0'),
-#                   ('function-sqrt > 0.5 number > 13.0')]
-# ```
-#
-# And `extracting_prediction_paths(clf, feature_names, x)` returns the follwing new paths to refine and refute our decision tree:
-#
-# ```python
-# new_prediction_paths = {'function-sqrt <= 0.5',
-#                             'function-sqrt <= 0.5, number <= 13.0',
-#                             'function-sqrt <= 0.5, number > 13.0',
-#                             'function-sqrt > 0.5',
-#                             'function-sqrt > 0.5, number <= 13.0',
-#                             'function-sqrt > 0.5, number > 13.0'`
-#
-# ```
-
-# #### `TEST`
-
-# In[ ]:
 
 
 expected_prediction_paths = {
@@ -265,19 +181,7 @@ assert len(expected_prediction_paths) == len(
 ), f"Too many prediction paths were generated (expected {len(expected_prediction_paths)}, got {len(new_prediction_paths)} )"
 
 
-# If no assertion is triggered, then everything seems to work.
-
-# # Input Specification Parser
-
-# In[ ]:
-
-
-import string
-from fuzzingbook.Grammars import Grammar, is_valid_grammar
-
-START_SYMBOL = "<start>"
-
-SPECIFICATION: Grammar = {
+SPECIFICATION_GRAMMAR: Grammar = {
     "<start>": ["<req_list>"],
     "<req_list>": ["<req>", "<req>" ", " "<req_list>"],
     "<req>": ["<feature>" " " "<quant>" " " "<num>"],
@@ -297,60 +201,6 @@ SPECIFICATION: Grammar = {
     "<letters>": ["<letter><letters>", "<letter>"],
     "<letter>": list(string.ascii_letters + string.digits + string.punctuation),
 }
-
-assert is_valid_grammar(SPECIFICATION, START_SYMBOL) == True
-
-
-# ###  Lets validate the parser:
-
-# Lets validate our grammar, by using the grammar to produce 100 sample requirement specifications
-
-# In[ ]:
-
-
-from fuzzingbook.GrammarFuzzer import GrammarFuzzer
-from fuzzingbook.Grammars import EXPR_GRAMMAR, Expansion
-from fuzzingbook.Parser import EarleyParser, tree_to_string
-
-g = GrammarFuzzer(SPECIFICATION, START_SYMBOL, max_nonterminals=100)
-earley = EarleyParser(SPECIFICATION)
-for i in range(100):
-    sample = g.fuzz()
-    for tree in earley.parse(sample):
-        assert (
-            tree_to_string(tree) == sample
-        ), f"{tree_to_string(tree)} and {sample} are not equal"
-
-
-# Lets also try with some real requirement specifications
-
-# #### `TEST`
-
-# In[ ]:
-
-
-earley = EarleyParser(SPECIFICATION)
-teststrings = [
-    "exists(<function>@0) > 0.5, exists(<term>@0) <= 0.5, exists(<value>@1) <= 0.5",
-    "exists(<digit>@9) <= 0.5, exists(<function>@0) > 0.5, num(<term>) > 0.05000000074505806",
-    "exists(<digit>@2) <= 0.5, exists(<function>@0) < 0.5, num(<term>) <= 0.05000000074505806",
-    "exists(<function>@0) > 0.5, num(<term>) > -3965678.1875",
-]
-for count, sample in enumerate(teststrings):
-    for tree in earley.parse(sample):
-        assert (
-            tree_to_string(tree) == teststrings[count]
-        ), f"{tree_to_string(tree)} and {teststrings[count]} are not equal"
-
-
-# # Retrive New input Specifications
-
-# In[ ]:
-
-
-from typing import List
-from fuzzingbook.GrammarFuzzer import DerivationTree
-from alhazen.Activity1_1_FeatureExtraction import Feature
 
 
 class Requirement:
@@ -377,7 +227,7 @@ class Requirement:
 
 class InputSpecification:
     """
-    This class represents a complet input specification of a new input. A input specification
+    This class represents a complete input specification of a new input. A input specification
     consists of one or more requirements.
 
     requirements  : Is a list of all requirements that must be used.
@@ -415,7 +265,7 @@ def get_all_subtrees(derivation_tree, non_terminal):
 def create_new_input_specification(derivation_tree, all_features) -> InputSpecification:
     """
     This function creates a new input specification for a parsed decision tree path.
-    The input derivation_tree corresponds to a already negated path in the decision tree.
+    The input derivation_tree corresponds to an already negated path in the decision tree.
     """
 
     requirement_list = []
@@ -450,14 +300,13 @@ def get_all_input_specifications(
     OUTPUT:
         - Returns a list of InputSpecifications
     """
-    prediciton_paths = extracting_prediction_paths(dec_tree, feature_names, data)
+    prediction_paths = extracting_prediction_paths(dec_tree, feature_names, data)
     input_specifications = []
 
-    # parse all extracted paths
-    for r in prediciton_paths:
-        earley = EarleyParser(SPECIFICATION)
+    for r in prediction_paths:
+        parser = EarleyParser(SPECIFICATION_GRAMMAR)
         try:
-            for tree in earley.parse(r):
+            for tree in parser.parse(r):
                 input_specifications.append(
                     create_new_input_specification(tree, all_features)
                 )
@@ -467,40 +316,3 @@ def get_all_input_specifications(
             pass
 
     return input_specifications
-
-
-# #### `TEST`
-
-# In[ ]:
-
-
-# feature extraction
-from alhazen.Activity1_1_FeatureExtraction import extract_existence, extract_numeric
-from alhazen.helper import CALC_GRAMMAR
-
-sample_prediction_paths = [
-    "exists(<function>@0) > 0.5, num(<term>) <= -38244758.0",
-    "exists(<digit>@7) <= 0.5, exists(<function>@0) > 0.5, num(<term>) <= 0.05000000074505806",
-    "exists(<digit>) > 1.5, exists(<function>@0) > 0.5, num(<term>) <= 0.21850000321865082",
-    "exists(<function>@0) > 0.5",
-]
-
-expected_input_specifications = [
-    "NewInputSpecification(Requirement(exists(<function>@0) > 0.5), Requirement(num(<term>) <= -38244758.0))",
-    "NewInputSpecification(Requirement(exists(<digit>@7) <= 0.5), Requirement(exists(<function>@0) > 0.5), Requirement(num(<term>) <= 0.05000000074505806))",
-    "NewInputSpecification(Requirement(exists(<digit>) > 1.5), Requirement(exists(<function>@0) > 0.5), Requirement(num(<term>) <= 0.21850000321865082))",
-    "NewInputSpecification(Requirement(exists(<function>@0) > 0.5))",
-]
-
-all_features = extract_existence(CALC_GRAMMAR) + extract_numeric(CALC_GRAMMAR)
-
-earley = EarleyParser(SPECIFICATION)
-for count, sample in enumerate(sample_prediction_paths):
-    for tree in earley.parse(sample):
-        input_specification = create_new_input_specification(tree, all_features)
-        assert (
-            str(input_specification) == expected_input_specifications[count]
-        ), f"{str(input_specification)} is not equal to {expected_input_specifications[count]}"
-
-
-# If no assertion is triggered, then everything seems to work.

@@ -17,7 +17,7 @@ from alhazen.Activity1_1_FeatureExtraction import (
     NumericInterpretation,
 )
 from alhazen.helper import OracleResult, CALC_GRAMMAR
-from alhazen.Activity3_RequirementExtraction import InputSpecification, Requirement
+from alhazen.input_specifications import InputSpecification, Requirement
 from alhazen.Activity1_1_FeatureExtraction import get_all_features, collect_features
 
 from fuzzingbook.GrammarFuzzer import GrammarFuzzer

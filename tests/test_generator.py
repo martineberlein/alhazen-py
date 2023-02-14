@@ -4,8 +4,8 @@ from alhazen.Activity1_1_FeatureExtraction import (
     ExistenceFeature,
     NumericInterpretation,
 )
-from alhazen.Activity3_RequirementExtraction import Requirement, InputSpecification
-from alhazen.generator import SimpleGenerator, AdvancedGenerator, Generator
+from alhazen.input_specifications import Requirement, InputSpecification
+from alhazen.generator import SimpleGenerator, AdvancedGenerator, Generator, generate_samples_advanced
 from alhazen_formalizations.calculator import grammar
 
 
@@ -27,8 +27,24 @@ class TestGenerator(unittest.TestCase):
         )
         input_specification = InputSpecification([req_sqrt, req_term])
 
-        result = generator.generate(input_specification)
-        print(result)
+        generator.generate(input_specification)
+
+    def test_advanced_generator_function_old(self):
+        """
+        Old Function -> Deprecated
+        """
+        exist_sqrt = ExistenceFeature("exists(<function>@0)", "<function>", "sqrt")
+        req_sqrt = Requirement(exist_sqrt, ">", "0.5")
+
+        num_term = NumericInterpretation("num(<term>)", "<term>")
+        req_term = Requirement(num_term, ">", "-31.0")
+
+        test_spec1 = InputSpecification([req_sqrt, req_term])
+
+        for _ in range(10):
+            print(str(generate_samples_advanced(
+                grammar, [test_spec1], 10
+            )))  # TODO better test case and assertion
 
 
 if __name__ == "__main__":

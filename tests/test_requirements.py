@@ -1,19 +1,43 @@
 import unittest
+import pandas
 
-from fuzzingbook.Parser import EarleyParser
+from sklearn.tree import DecisionTreeClassifier
+from fuzzingbook.Parser import EarleyParser, tree_to_string, is_valid_grammar
 from isla.derivation_tree import DerivationTree
 
+from alhazen.requirementExtractionDT.requirements import tree_to_paths
 from alhazen.Activity1_1_FeatureExtraction import (
     ExistenceFeature,
     NumericInterpretation,
     collect_features,
+    extract_existence,
+    extract_numeric
 )
-from alhazen.Activity3_RequirementExtraction import Requirement, InputSpecification
-from alhazen.generator import generate_samples_advanced, AdvancedGenerator
+from alhazen.input_specifications import Requirement, InputSpecification, SPECIFICATION_GRAMMAR, create_new_input_specification
+from alhazen.generator import AdvancedGenerator
 from alhazen_formalizations.calculator import grammar
 
 
-class TestGenerator(unittest.TestCase):
+class TestInputSpecifications(unittest.TestCase):
+
+    def setUp(self) -> None:
+        features = [
+            {"function-sqrt": 1, "function-cos": 0, "function-sin": 0, "number": -900},
+            {"function-sqrt": 0, "function-cos": 1, "function-sin": 0, "number": 300},
+            {"function-sqrt": 1, "function-cos": 0, "function-sin": 0, "number": -1},
+            {"function-sqrt": 0, "function-cos": 1, "function-sin": 0, "number": -10},
+            {"function-sqrt": 0, "function-cos": 0, "function-sin": 1, "number": 36},
+            {"function-sqrt": 0, "function-cos": 0, "function-sin": 1, "number": -58},
+            {"function-sqrt": 1, "function-cos": 0, "function-sin": 0, "number": 27},
+        ]
+        oracle = ["BUG", "NO_BUG", "BUG", "NO_BUG", "NO_BUG", "NO_BUG", "NO_BUG"]
+
+        self.feature_names = ["function-sqrt", "function-cos", "function-sin", "number"]
+        x_data = pandas.DataFrame.from_records(features)
+
+        clf = DecisionTreeClassifier(random_state=10)
+        self.clf = clf.fit(x_data, oracle)
+
     def test_validation_requirement(self):
         exist_sqrt = ExistenceFeature("exists(<function>@0)", "<function>", "sqrt")
         req_sqrt = Requirement(exist_sqrt, ">", "0.5")
@@ -60,23 +84,58 @@ class TestGenerator(unittest.TestCase):
         self.assertEqual(result, False)
         self.assertEqual(count, 1)
 
-    def test_requirements(self):
-        exist_sqrt = ExistenceFeature("exists(<function>@0)", "<function>", "sqrt")
-        exist_digit = ExistenceFeature("exists(<digit>)", "<digit>", "<digit>")
+    def test_tree_to_paths(self):
+        expected_paths = [
+            ("function-sqrt <= 0.5", False),
+            ("function-sqrt > 0.5 number <= 13.0", True),
+            ("function-sqrt > 0.5 number > 13.0", False),
+        ]
 
-        req_sqrt = Requirement(exist_sqrt, ">", "0.5")
-        req_digit = Requirement(exist_digit, "<=", "0.5")
+        all_paths = tree_to_paths(self.clf, self.feature_names)
 
-        test_spec_0 = InputSpecification([req_sqrt, req_digit])
+        for path, expected in zip(all_paths, expected_paths):
+            string_path = path.get(0).get_str_ext()
+            for box in range(1, len(path)):
+                string_path += " " + path.get(box).get_str_ext()
+            self.assertEqual((string_path, path.is_bug()), expected)
 
-        num_term = NumericInterpretation("num(<term>)", "<term>")
-        req_term = Requirement(num_term, "<", "-31.0")
-        test_spec1 = InputSpecification([req_sqrt, req_term])
+    def test_specification_grammar(self):
+        self.assertTrue(is_valid_grammar(SPECIFICATION_GRAMMAR))
 
-        for _ in range(10):
-            generate_samples_advanced(
-                grammar, [test_spec1], 10
-            )  # TODO better test case and assertion
+        plain_input_specifications = [
+            "exists(<function>@0) > 0.5, exists(<term>@0) <= 0.5, exists(<value>@1) <= 0.5",
+            "exists(<digit>@9) <= 0.5, exists(<function>@0) > 0.5, num(<term>) > 0.05000000074505806",
+            "exists(<digit>@2) <= 0.5, exists(<function>@0) < 0.5, num(<term>) <= 0.05000000074505806",
+            "exists(<function>@0) > 0.5, num(<term>) > -3965678.1875",
+        ]
+
+        earley = EarleyParser(SPECIFICATION_GRAMMAR)
+        for sample in plain_input_specifications:
+            for tree in earley.parse(sample):
+                self.assertEqual(tree_to_string(tree), sample)
+
+    def test_parse_specification(self):
+        sample_prediction_paths = [
+            "exists(<function>@0) > 0.5, num(<term>) <= -38244758.0",
+            "exists(<digit>@7) <= 0.5, exists(<function>@0) > 0.5, num(<term>) <= 0.05000000074505806",
+            "exists(<digit>) > 1.5, exists(<function>@0) > 0.5, num(<term>) <= 0.21850000321865082",
+            "exists(<function>@0) > 0.5",
+        ]
+
+        expected_input_specifications = [
+            "NewInputSpecification(Requirement(exists(<function>@0) > 0.5), Requirement(num(<term>) <= -38244758.0))",
+            "NewInputSpecification(Requirement(exists(<digit>@7) <= 0.5), Requirement(exists(<function>@0) > 0.5), Requirement(num(<term>) <= 0.05000000074505806))",
+            "NewInputSpecification(Requirement(exists(<digit>) > 1.5), Requirement(exists(<function>@0) > 0.5), Requirement(num(<term>) <= 0.21850000321865082))",
+            "NewInputSpecification(Requirement(exists(<function>@0) > 0.5))",
+        ]
+
+        all_features = extract_existence(grammar) + extract_numeric(grammar)
+
+        earley = EarleyParser(SPECIFICATION_GRAMMAR)
+        for sample, expected in zip(sample_prediction_paths, expected_input_specifications):
+            for tree in earley.parse(sample):
+                input_specification = create_new_input_specification(tree, all_features)
+                self.assertEqual(str(input_specification), expected)
 
 
 if __name__ == "__main__":
