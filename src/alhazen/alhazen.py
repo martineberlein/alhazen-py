@@ -18,7 +18,7 @@ from alhazen.Activity1_1_FeatureExtraction import (
 
 from alhazen.Activity2_DecisionTreeLearner import train_tree
 from alhazen.generator import SimpleGenerator, Generator
-from alhazen.Activity3_RequirementExtraction import get_all_input_specifications
+from alhazen.input_specifications import get_all_input_specifications
 
 from alhazen.helper import OracleResult
 
@@ -136,7 +136,7 @@ class Alhazen:
         exec_oracle = []
         for inp in inputs:
             try:
-                result = OracleResult.BUG if self._prop(inp) else OracleResult.NO_BUG
+                result = OracleResult.BUG if self._prop(inp) else OracleResult.NO_BUG  # TODO What about UNDEF?
                 exec_oracle.append(
                     {
                         # "sample_id": id.hex,
