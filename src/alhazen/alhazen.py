@@ -16,7 +16,7 @@ from alhazen.Activity1_1_FeatureExtraction import (
     Feature,
 )
 
-from alhazen.Activity2_DecisionTreeLearner import train_tree
+from alhazen.learner import train_tree
 from alhazen.generator import SimpleGenerator, Generator
 from alhazen.input_specifications import get_all_input_specifications
 
