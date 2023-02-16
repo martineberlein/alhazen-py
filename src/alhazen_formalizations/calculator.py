@@ -1,7 +1,11 @@
 import math
+import logging
 
 from fuzzingbook.Grammars import Grammar
-from fuzzingbook.Parser import DerivationTree
+# from fuzzingbook.Parser import DerivationTree
+from isla.derivation_tree import DerivationTree
+
+from alhazen.helper import OracleResult
 
 
 def arith_eval(inp: DerivationTree) -> float:
@@ -10,12 +14,22 @@ def arith_eval(inp: DerivationTree) -> float:
     )
 
 
-def prop(inp: DerivationTree) -> bool:
+def prop_(inp: DerivationTree) -> bool:
     try:
         arith_eval(inp)
         return False
     except ValueError:
         return True
+
+
+def prop(inp: DerivationTree):
+    try:
+        return OracleResult.BUG if prop_(inp) else OracleResult.NO_BUG
+    except SyntaxError:
+        logging.info(
+            f"Input {str(inp)} is not a valid input of the program. You might want to rewrite your grammar!"
+        )
+        return OracleResult.UNDEF
 
 
 grammar: Grammar = {

@@ -90,7 +90,11 @@ from fuzzingbook.Parser import DerivationTree, tree_to_string
 
 
 def prop_(prop, sample: DerivationTree):
-    result = prop(tree_to_string(sample)) if isinstance(sample, DerivationTree) else prop(sample)
+    result = (
+        prop(tree_to_string(sample))
+        if isinstance(sample, DerivationTree)
+        else prop(sample)
+    )
     # result = prop(tree_to_string(sample))
     if isinstance(result, bool):
         if result:

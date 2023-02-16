@@ -12,7 +12,7 @@ from alhazen import Alhazen
 
 from alhazen_formalizations.calculator import initial_inputs, grammar, prop
 from alhazen.requirementExtractionDT.treetools import remove_unequal_decisions
-from alhazen.Activity1_1_FeatureExtraction import extract_existence, extract_numeric, collect_features
+from alhazen.features import extract_existence, extract_numeric, collect_features
 from alhazen.helper import show_tree, OracleResult
 
 MAX_ITERATION = 30

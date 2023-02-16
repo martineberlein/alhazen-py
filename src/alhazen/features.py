@@ -15,6 +15,8 @@ from fuzzingbook.Parser import EarleyParser
 
 from isla.derivation_tree import DerivationTree
 
+from alhazen.input import Input
+
 
 class Feature(ABC):
     """
@@ -126,7 +128,9 @@ class NumericInterpretation(Feature):
         if node == self.rule:
             try:
                 # print(self.name, float(tree_to_string(derivation_tree)))
-                value = float(tree_to_string(derivation_tree))  # TODO here fuzzingbook Derivation Tree
+                value = float(
+                    tree_to_string(derivation_tree)
+                )  # TODO here fuzzingbook Derivation Tree
             except ValueError:
                 # print(self.name, float(tree_to_string(derivation_tree)), "err")
                 pass
@@ -270,30 +274,15 @@ def test_features(features: List[Feature]) -> None:
     print("All checks passed!")
 
 
-def collect_features(sample_list: Set[DerivationTree], grammar: Grammar) -> DataFrame:
-    data = []
+def collect_features(test_input: Input, all_features: List[Feature]) -> Dict:
+    parsed_features = {}  # {"sample": str(test_input.tree)}
+    for feature in all_features:
+        parsed_features[feature.name] = 0
+        parsed_features[feature.name] = feature.get_feature_value(
+            test_input.tree
+        )  # TODO can be done prettier!
 
-    # parse grammar and extract features
-    all_features = get_all_features(grammar)
-
-    # iterate over all samples
-    #  TODO trees are already Derivation trees!
-    for sample in sample_list:
-        inp = str(sample)
-
-        parsed_features = {"sample": inp}
-        for feature in all_features:
-            parsed_features[feature.name] = 0
-
-        # Obtain the parse tree for each input file
-        parser = EarleyParser(grammar)
-        for tree in parser.parse(inp):
-            for feature in all_features:
-                parsed_features[feature.name] = feature.get_feature_value(tree)
-
-        data.append(parsed_features)
-
-    return DataFrame.from_records(data)
+    return parsed_features
 
 
 def get_feature_vector(sample, grammar, features):

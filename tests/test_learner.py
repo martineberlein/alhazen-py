@@ -36,7 +36,12 @@ class MyTestCase(unittest.TestCase):
                 "function-sin": 0,
                 "number": -10,
             },  # cos(-10)
-            {"function-sqrt": 0, "function-cos": 0, "function-sin": 1, "number": 36},  # sin(36)
+            {
+                "function-sqrt": 0,
+                "function-cos": 0,
+                "function-sin": 1,
+                "number": 36,
+            },  # sin(36)
             {
                 "function-sqrt": 0,
                 "function-cos": 0,
@@ -79,7 +84,7 @@ class MyTestCase(unittest.TestCase):
                 "function-cos": 0,
                 "function-sin": 0,
                 "number": -900,
-                "oracle": OracleResult.BUG
+                "oracle": OracleResult.BUG,
             },  # sqrt(-900)
             {
                 # "sample": 'cos(300)',
@@ -87,7 +92,7 @@ class MyTestCase(unittest.TestCase):
                 "function-cos": 1,
                 "function-sin": 0,
                 "number": 300,
-                "oracle": OracleResult.NO_BUG
+                "oracle": OracleResult.NO_BUG,
             },  # cos(300)
             {
                 # "sample": 'UNDEF(x)',
@@ -95,7 +100,7 @@ class MyTestCase(unittest.TestCase):
                 "function-cos": 0,
                 "function-sin": 0,
                 "number": 0,
-                "oracle": OracleResult.UNDEF
+                "oracle": OracleResult.UNDEF,
             },  # UNDEF
         ]
 
@@ -105,5 +110,5 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(isinstance(clf, DecisionTreeClassifier))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
