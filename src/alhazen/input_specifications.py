@@ -2,7 +2,7 @@
 
 import pandas
 from typing import List
-from alhazen.Activity1_1_FeatureExtraction import Feature
+from alhazen.features import Feature
 
 from fuzzingbook.GrammarFuzzer import GrammarFuzzer
 from fuzzingbook.Grammars import EXPR_GRAMMAR, Expansion
