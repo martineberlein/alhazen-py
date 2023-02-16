@@ -1,6 +1,6 @@
 import unittest
 
-from alhazen.Activity1_1_FeatureExtraction import (
+from alhazen.features import (
     ExistenceFeature,
     NumericInterpretation,
     get_all_features,

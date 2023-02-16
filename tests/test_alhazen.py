@@ -3,7 +3,11 @@ import unittest
 from sklearn.tree import DecisionTreeClassifier
 
 from alhazen import Alhazen
-from alhazen_formalizations.calculator import initial_inputs, prop, grammar_alhazen as grammar
+from alhazen_formalizations.calculator import (
+    initial_inputs,
+    prop,
+    grammar_alhazen as grammar,
+)
 
 
 class TestAlhazen(unittest.TestCase):

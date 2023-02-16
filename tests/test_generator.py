@@ -1,11 +1,16 @@
 import unittest
 
-from alhazen.Activity1_1_FeatureExtraction import (
+from alhazen.features import (
     ExistenceFeature,
     NumericInterpretation,
 )
 from alhazen.input_specifications import Requirement, InputSpecification
-from alhazen.generator import SimpleGenerator, AdvancedGenerator, Generator, generate_samples_advanced
+from alhazen.generator import (
+    SimpleGenerator,
+    AdvancedGenerator,
+    Generator,
+    generate_samples_advanced,
+)
 from alhazen_formalizations.calculator import grammar
 
 
@@ -42,9 +47,9 @@ class TestGenerator(unittest.TestCase):
         test_spec1 = InputSpecification([req_sqrt, req_term])
 
         for _ in range(10):
-            print(str(generate_samples_advanced(
-                grammar, [test_spec1], 10
-            )))  # TODO better test case and assertion
+            print(
+                str(generate_samples_advanced(grammar, [test_spec1], 10))
+            )  # TODO better test case and assertion
 
 
 if __name__ == "__main__":
