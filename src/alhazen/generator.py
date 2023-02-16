@@ -2,7 +2,7 @@ import time
 import copy
 import random
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import pandas
 
@@ -12,23 +12,32 @@ from fuzzingbook.GrammarFuzzer import (
 )
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
 
-from alhazen.Activity1_1_FeatureExtraction import (
+from alhazen.features import (
+    Feature,
     ExistenceFeature,
     NumericInterpretation,
+    extract_numeric,
+    extract_existence,
 )
 from alhazen.helper import OracleResult, CALC_GRAMMAR
 from alhazen.input_specifications import InputSpecification, Requirement
-from alhazen.Activity1_1_FeatureExtraction import get_all_features, collect_features
+from alhazen.features import get_all_features, collect_features
+from alhazen.input import Input
 
 from fuzzingbook.GrammarFuzzer import GrammarFuzzer
 from isla.derivation_tree import DerivationTree
 
 
-def best_trees(forest, spec):
-    samples = [tree_to_string(tree) for tree in forest]
+def best_trees(forest, spec, grammar):
+    samples = [tree for tree in forest]
     fulfilled_fractions = []
+    grammar_features: List[Feature] = extract_existence(grammar) + extract_numeric(
+        grammar
+    )
     for sample in samples:
-        gen_features = collect_features([sample], CALC_GRAMMAR)
+        gen_features = collect_features(
+            Input(tree=DerivationTree.from_parse_tree(sample)), grammar_features
+        )
 
         # calculate percentage of fulfilled requirements (used to rank the sample)
         fulfilled_count = 0
@@ -37,7 +46,7 @@ def best_trees(forest, spec):
             # for now, interpret requirement(exists(<...>) <= number) as false and requirement(exists(<...>) > number) as true
             if isinstance(req.feature, ExistenceFeature):
                 expected = 1.0 if req.quant == ">" or req.quant == ">=" else 0.0
-                actual = gen_features[req.feature.name][0]
+                actual = gen_features[req.feature.name]
                 if actual == expected:
                     fulfilled_count += 1
                 else:
@@ -45,7 +54,7 @@ def best_trees(forest, spec):
                     # print(f'{req.feature} expected: {expected}, actual:{actual}')
             elif isinstance(req.feature, NumericInterpretation):
                 expected_value = float(req.value)
-                actual_value = gen_features[req.feature.name][0]
+                actual_value = gen_features[req.feature.name]
                 fulfilled = False
                 if req.quant == "<":
                     fulfilled = actual_value < expected_value
@@ -97,7 +106,7 @@ def generate_samples_advanced(
         done = False
         starttime = time.time()
         best_chosen = [fuzzer.fuzz_tree() for _ in range(100)]
-        done, best_chosen = best_trees(best_chosen, spec)
+        done, best_chosen = best_trees(best_chosen, spec, grammar)
         if done:
             final_samples.append(tree_to_string(best_chosen))
         while not done and time.time() - starttime < each_spec_timeout:
@@ -139,7 +148,7 @@ def generate_samples_advanced(
                                 curr = s[0]
                             except SyntaxError:
                                 pass
-            done, best_chosen = best_trees(best_chosen, spec)
+            done, best_chosen = best_trees(best_chosen, spec, grammar)
             if done:
                 final_samples.append(tree_to_string(best_chosen))
         if not done:
@@ -166,7 +175,7 @@ class Generator(ABC):
         self.timeout: int = timeout
 
     @abstractmethod
-    def generate(self, **kwargs) -> DerivationTree:
+    def generate(self, **kwargs) -> Input:
         raise NotImplementedError
 
 
@@ -178,12 +187,12 @@ class SimpleGenerator(Generator):
     def __init__(self, grammar: Grammar):
         super().__init__(grammar)
 
-    def generate(self, **kwargs) -> DerivationTree:
+    def generate(self, **kwargs) -> Input:
         f = GrammarFuzzer(self.grammar, max_nonterminals=50, log=False)
-        new_input = DerivationTree.from_parse_tree(f.fuzz_tree())
-        assert isinstance(new_input, DerivationTree)
+        new_tree = DerivationTree.from_parse_tree(f.fuzz_tree())
+        assert isinstance(new_tree, DerivationTree)
 
-        return new_input
+        return Input(tree=new_tree)
 
 
 class AdvancedGenerator(Generator):
@@ -191,25 +200,34 @@ class AdvancedGenerator(Generator):
     Generator to produce new inputs according to a given set of input specifications.
     """
 
-    def __init__(self, grammar: Grammar, timeout: int = 10):
+    def __init__(
+        self,
+        grammar: Grammar,
+        grammar_features: List[Feature] = None,
+        timeout: int = 10,
+    ):
         super().__init__(grammar, timeout=timeout)
 
+        if grammar_features is None:
+            self.grammar_features: List[Feature] = extract_existence(
+                self.grammar
+            ) + extract_numeric(self.grammar)
+        self._grammar_features = grammar_features
+
     @staticmethod
-    def validate_requirement(
-        sample_features: pandas.DataFrame, requirement: Requirement
-    ) -> bool:
+    def validate_requirement(input_features: Dict, requirement: Requirement) -> bool:
         if isinstance(requirement.feature, ExistenceFeature):
             expected = (
                 1.0 if requirement.quant == ">" or requirement.quant == ">=" else 0.0
             )
-            actual = sample_features[requirement.feature.name][0]
+            actual = input_features[requirement.feature.name]
             if actual == expected:
                 return True
             return False
 
         elif isinstance(requirement.feature, NumericInterpretation):
             expected = float(requirement.value)
-            actual_value = sample_features[requirement.feature.name][0]
+            actual_value = input_features[requirement.feature.name]
 
             match requirement.quant:
                 case "<":
@@ -222,20 +240,20 @@ class AdvancedGenerator(Generator):
                     return actual_value >= expected
 
     def validate(
-        self, sample: DerivationTree, specification: InputSpecification
+        self, test_input: Input, specification: InputSpecification
     ) -> Tuple[bool, int]:
         """
         Checks whether an input fulfills a given input specification. The result is the number of unfulfilled
         requirements. Thus, 0 corresponds to a perfectly fulfilled input.
         Args:
-            sample: input sample to be checked
+            test_input: input sample to be checked
             specification: an input specification with requirements for a given input
 
         Returns:
             Tuple[bool, str]
         """
-        assert isinstance(sample, DerivationTree)
-        features = collect_features({sample}, self.grammar)
+        assert isinstance(test_input, Input)
+        features = collect_features(test_input, self.grammar_features)
 
         count = len(specification.requirements)
         for requirement in specification.requirements:
@@ -244,18 +262,18 @@ class AdvancedGenerator(Generator):
 
         return True if count == 0 else False, count
 
-    def generate(self, input_specification: InputSpecification) -> DerivationTree:
+    def generate(self, input_specification: InputSpecification) -> Input:
         generator = SimpleGenerator(self.grammar)
         if not input_specification:
             return generator.generate()
 
-        samples = [generator.generate() for _ in range(100)]
+        sample_inputs: List[Input] = [generator.generate() for _ in range(100)]
         queue = []
-        for sample in samples:
-            validated, unfulfilled = self.validate(sample, input_specification)
+        for inp in sample_inputs:
+            validated, unfulfilled = self.validate(inp, input_specification)
             if validated:
-                return sample
-            queue.append((sample, unfulfilled))
+                return inp
+            queue.append((inp, unfulfilled))
 
 
 class ISLAGenerator(Generator):

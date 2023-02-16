@@ -6,20 +6,25 @@ from fuzzingbook.Parser import EarleyParser, tree_to_string, is_valid_grammar
 from isla.derivation_tree import DerivationTree
 
 from alhazen.requirementExtractionDT.requirements import tree_to_paths
-from alhazen.Activity1_1_FeatureExtraction import (
+from alhazen.features import (
     ExistenceFeature,
     NumericInterpretation,
     collect_features,
     extract_existence,
-    extract_numeric
+    extract_numeric,
 )
-from alhazen.input_specifications import Requirement, InputSpecification, SPECIFICATION_GRAMMAR, create_new_input_specification
+from alhazen.input_specifications import (
+    Requirement,
+    InputSpecification,
+    SPECIFICATION_GRAMMAR,
+    create_new_input_specification,
+)
 from alhazen.generator import AdvancedGenerator
 from alhazen_formalizations.calculator import grammar
+from alhazen.input import Input
 
 
 class TestInputSpecifications(unittest.TestCase):
-
     def setUp(self) -> None:
         features = [
             {"function-sqrt": 1, "function-cos": 0, "function-sin": 0, "number": -900},
@@ -38,6 +43,8 @@ class TestInputSpecifications(unittest.TestCase):
         clf = DecisionTreeClassifier(random_state=10)
         self.clf = clf.fit(x_data, oracle)
 
+        self.grammar_features = extract_existence(grammar) + extract_numeric(grammar)
+
     def test_validation_requirement(self):
         exist_sqrt = ExistenceFeature("exists(<function>@0)", "<function>", "sqrt")
         req_sqrt = Requirement(exist_sqrt, ">", "0.5")
@@ -46,11 +53,12 @@ class TestInputSpecifications(unittest.TestCase):
         derivation_tree = DerivationTree.from_parse_tree(
             next(EarleyParser(grammar).parse(inp))
         )
-        inp_features = collect_features({derivation_tree}, grammar=grammar)
+        test_input = Input(derivation_tree)
+        inp_features = collect_features(test_input, self.grammar_features)
 
         generator = AdvancedGenerator(grammar)
         result = generator.validate_requirement(
-            sample_features=inp_features, requirement=req_sqrt
+            input_features=inp_features, requirement=req_sqrt
         )
         self.assertTrue(result)
 
@@ -70,7 +78,7 @@ class TestInputSpecifications(unittest.TestCase):
 
         generator = AdvancedGenerator(grammar)
         result, _ = generator.validate(
-            sample=derivation_tree, specification=input_specification
+            test_input=Input(derivation_tree), specification=input_specification
         )
         self.assertEqual(result, True)
 
@@ -79,7 +87,7 @@ class TestInputSpecifications(unittest.TestCase):
         )
         input_specification_1 = InputSpecification([req_sqrt, req_term_1])
         result, count = generator.validate(
-            sample=derivation_tree, specification=input_specification_1
+            test_input=Input(derivation_tree), specification=input_specification_1
         )
         self.assertEqual(result, False)
         self.assertEqual(count, 1)
@@ -132,7 +140,9 @@ class TestInputSpecifications(unittest.TestCase):
         all_features = extract_existence(grammar) + extract_numeric(grammar)
 
         earley = EarleyParser(SPECIFICATION_GRAMMAR)
-        for sample, expected in zip(sample_prediction_paths, expected_input_specifications):
+        for sample, expected in zip(
+            sample_prediction_paths, expected_input_specifications
+        ):
             for tree in earley.parse(sample):
                 input_specification = create_new_input_specification(tree, all_features)
                 self.assertEqual(str(input_specification), expected)

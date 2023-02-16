@@ -6,7 +6,7 @@ from isla.derivation_tree import DerivationTree
 from alhazen.helper import OracleResult
 
 
-class TestInput:
+class Input:
     """
     Class describing a test input.
     """
@@ -25,9 +25,17 @@ class TestInput:
     def oracle(self) -> OracleResult:
         return self.__oracle
 
+    @property
+    def features(self) -> DataFrame:
+        return self.__features
+
     @oracle.setter
     def oracle(self, oracle_: OracleResult):
         self.__oracle = oracle_
+
+    @features.setter
+    def features(self, features_: DataFrame):
+        self.__features = features_
 
     def __str__(self) -> str:
         return str(self.__tree)
