@@ -5,7 +5,7 @@ from isla.derivation_tree import DerivationTree
 from fuzzingbook.Parser import EarleyParser
 
 from alhazen_formalizations.calculator import grammar_alhazen as grammar, prop
-from alhazen.helper import OracleResult
+from alhazen.oracle import OracleResult
 from alhazen.features import collect_features, extract_existence, extract_numeric
 from alhazen.input import Input
 

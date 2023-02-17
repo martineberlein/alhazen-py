@@ -5,7 +5,7 @@ from fuzzingbook.Grammars import Grammar
 # from fuzzingbook.Parser import DerivationTree
 from isla.derivation_tree import DerivationTree
 
-from alhazen.helper import OracleResult
+from alhazen.oracle import OracleResult
 
 
 def arith_eval(inp: DerivationTree) -> float:

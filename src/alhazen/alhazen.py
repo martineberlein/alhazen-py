@@ -20,8 +20,7 @@ from alhazen.input import Input
 from alhazen.learner import train_tree, Learner, DecisionTreeLearner
 from alhazen.generator import SimpleGenerator, Generator
 from alhazen.input_specifications import get_all_input_specifications
-
-from alhazen.helper import OracleResult
+from alhazen.oracle import OracleResult
 
 GENERATOR_TIMEOUT = 10  # timeout in seconds
 MAX_ITERATION = 20
@@ -146,3 +145,25 @@ class Alhazen:
             inputs.add(self._generator.generate(input_specification=specification))
 
         return inputs
+
+    def _execute_input_files(self, inputs: Set[Input]) -> DataFrame:
+        logging.info("Executing input files")
+
+        exec_oracle = []
+        for inp in inputs:
+            try:
+                result = self._prop(inp.tree)  # TODO What about UNDEF?
+                exec_oracle.append(
+                    {
+                        # "sample_id": id.hex,
+                        # "sample": sample,
+                        # "subject": SUBJECT,
+                        "oracle": result
+                    }
+                )
+            except SyntaxError:
+                logging.info(
+                    f"Input {str(inp)} is not a valid input of the program. You might want to rewrite your grammar!"
+                )
+
+        return DataFrame.from_records(exec_oracle)

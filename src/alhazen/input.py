@@ -3,7 +3,7 @@ from typing import Generator, Optional
 from pandas import DataFrame
 from isla.derivation_tree import DerivationTree
 
-from alhazen.helper import OracleResult
+from alhazen.oracle import OracleResult
 
 
 class Input:

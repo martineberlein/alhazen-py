@@ -5,7 +5,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.feature_extraction import DictVectorizer
 from sklearn import tree
 
-from alhazen.helper import OracleResult
+from alhazen.oracle import OracleResult
 from alhazen.learner import train_tree
 
 

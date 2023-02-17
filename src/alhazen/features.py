@@ -1,11 +1,9 @@
-from typing import List, Dict, Set
+from typing import List, Dict
 from abc import ABC, abstractmethod
 from numpy import nanmax, isnan
 
 from collections import defaultdict
 import re
-from pandas import DataFrame
-
 
 from fuzzingbook.Grammars import Grammar
 from fuzzingbook.GrammarFuzzer import expansion_to_children

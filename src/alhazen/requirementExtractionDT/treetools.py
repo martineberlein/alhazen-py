@@ -4,7 +4,7 @@ import pandas
 import numpy
 import matplotlib.patches as mpp
 from .features import Feature, find_existence_index
-from . import oracles
+from alhazen.oracle import OracleResult
 from typing import List
 
 
@@ -107,10 +107,10 @@ def rectangles(clf, colormap, data, feature_names=None):
         yield rect
 
 
-def prediction_for_path(clf, path) -> oracles.OracleResult:
+def prediction_for_path(clf, path) -> OracleResult:
     last_value = clf.tree_.value[path[-1]][0]
     p_class = numpy.argmax(last_value)
-    return oracles.OracleResult(clf.classes_[p_class])
+    return OracleResult(clf.classes_[p_class])
 
 
 def rule(clf, path, feature_names, class_names=None):
