@@ -9,7 +9,7 @@ from alhazen.helper import OracleResult
 from alhazen.learner import train_tree
 
 
-class MyTestCase(unittest.TestCase):
+class TestLearner(unittest.TestCase):
     def setUp(self) -> None:
         self.features = [
             {
