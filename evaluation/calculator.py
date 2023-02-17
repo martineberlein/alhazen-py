@@ -1,6 +1,7 @@
 import sys
 import logging
 
+import pandas
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
@@ -10,22 +11,27 @@ from isla.derivation_tree import DerivationTree
 
 from alhazen import Alhazen
 
-from alhazen_formalizations.calculator import initial_inputs, grammar, prop
+from alhazen_formalizations.calculator import initial_inputs, grammar_alhazen as grammar, prop
 from alhazen.requirementExtractionDT.treetools import remove_unequal_decisions
 from alhazen.features import extract_existence, extract_numeric, collect_features
-from alhazen.helper import show_tree, OracleResult
+from alhazen.oracle import OracleResult
+from alhazen.helper import show_tree
+from alhazen.input import Input
 
 MAX_ITERATION = 30
 
 
 if __name__ == '__main__':
+    log = logging.getLogger()
+    log.setLevel(level=logging.DEBUG)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s:  %(message)s")
-
+    # log.setLevel(logging.DEBUG)
     alhazen = Alhazen(
         initial_inputs=initial_inputs,
         grammar=grammar,
         evaluation_function=prop,
-        max_iter=MAX_ITERATION
+        max_iter=MAX_ITERATION,
+        # generator=AdvancedGenerator(grammar)
     )
     trees = alhazen.run()
 
@@ -34,10 +40,11 @@ if __name__ == '__main__':
     show_tree(trees[MAX_ITERATION-1], all_features)
     show_tree(remove_unequal_decisions(trees[MAX_ITERATION - 1]), all_features)
 
-    evaluation_data = []
+    evaluation_data = set()
     g = GrammarFuzzer(grammar)
     for i in range(1000):
-        evaluation_data.append(DerivationTree.from_parse_tree(g.fuzz_tree()))
+        inp = Input(DerivationTree.from_parse_tree(g.fuzz_tree()))
+        evaluation_data.add(inp)
 
     evaluation_exec_data = alhazen._execute_input_files(evaluation_data)
 
@@ -46,10 +53,14 @@ if __name__ == '__main__':
 
     print(f"{sample_bug_count} samples of {sample_count} generated inputs trigger the bug.")
 
-    eval_feature_data = collect_features(evaluation_data, grammar)
+    d = []
+    for inp in evaluation_data:
+        d.append(collect_features(inp, all_features))
+
+    eval_feature_data = pandas.DataFrame.from_records(data=d)
 
     # Clean up the evaluation data
-    joined_data = evaluation_exec_data.join(eval_feature_data.drop(['sample'], axis=1))
+    joined_data = evaluation_exec_data.join(eval_feature_data)
 
     # Only add valid data
     new_data = joined_data[(joined_data['oracle'] != OracleResult.UNDEF)]
