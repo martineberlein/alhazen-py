@@ -14,6 +14,7 @@ from alhazen.t4p_common import (
 file_dir = Path(__file__).parent.absolute()
 HARNESS_FILE = str(Path(file_dir / "harness.py"))
 
+
 class PySnooperAPI(API):
     def __init__(self, expected_error: bytes, default_timeout: int = 5):
         self.expected_error = expected_error

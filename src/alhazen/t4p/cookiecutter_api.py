@@ -16,7 +16,13 @@ import string
 from fuzzingbook.Grammars import Grammar, srange, is_valid_grammar
 from isla.language import DerivationTree
 
-from alhazen.t4p_common import Environment, HARNESS_FILE, API, TestResult, GrammarVisitor
+from alhazen.t4p_common import (
+    Environment,
+    HARNESS_FILE,
+    API,
+    TestResult,
+    GrammarVisitor,
+)
 
 
 class CookieCutterAPI(API, GrammarVisitor):
@@ -161,7 +167,6 @@ class CookieCutterAPI(API, GrammarVisitor):
 
 
 class CookieCutter2API(CookieCutterAPI):
-
     def _get_command_parameters(self) -> List[str]:
         return ["--no-input", "-v"]
 
