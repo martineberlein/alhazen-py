@@ -19,9 +19,9 @@ from alhazen.features import (
     extract_numeric,
     extract_existence,
 )
-from alhazen.helper import OracleResult, CALC_GRAMMAR
+
 from alhazen.input_specifications import InputSpecification, Requirement
-from alhazen.features import get_all_features, collect_features
+from alhazen.features import collect_features
 from alhazen.input import Input
 
 from fuzzingbook.GrammarFuzzer import GrammarFuzzer
@@ -31,9 +31,7 @@ from isla.derivation_tree import DerivationTree
 def best_trees(forest, spec, grammar):
     samples = [tree for tree in forest]
     fulfilled_fractions = []
-    grammar_features: List[Feature] = extract_existence(grammar) + extract_numeric(
-        grammar
-    )
+    grammar_features: List[Feature] = extract_existence(grammar) + extract_numeric(grammar)
     for sample in samples:
         gen_features = collect_features(
             Input(tree=DerivationTree.from_parse_tree(sample)), grammar_features

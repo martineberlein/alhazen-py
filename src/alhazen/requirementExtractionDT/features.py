@@ -1,8 +1,5 @@
 import pandas
 import numpy
-
-# from antlr4 import *
-# from specsparser import SpecsParser, SpecsLexer, SpecsVisitor
 from typing import List
 
 
@@ -148,64 +145,8 @@ class MaxNumberFeature(Feature):
         return f"max-num({self._key})"
 
 
-""""
-
-class FeatureVisitor(SpecsVisitor.SpecsVisitor):
-
-    def __init__(self, readable_name: str):
-        self.__readable_name: str = readable_name
-
-    def visitKPathFeature(self, ctx: SpecsParser.SpecsParser.KPathFeatureContext):
-        return ExistenceFeature(ctx.getText(), self.__readable_name)
-
-    def visitParseableKeyFeature(self, ctx: SpecsParser.SpecsParser.Binary_featureContext):
-        return ExistenceFeature(ctx.getText(), self.__readable_name)
-
-    def visitCharLength(self, ctx: SpecsParser.SpecsParser.CharLengthContext):
-        return CharLengthFeature(ctx.argument().parseable_key().getText(), self.__readable_name)
-
-    def visitQaLength(self, ctx: SpecsParser.SpecsParser.QaLengthContext):
-        return QaLengthFeature(ctx.argument().parseable_key().getText(), self.__readable_name)
-
-    def visitMaxNumber(self, ctx: SpecsParser.SpecsParser.MaxNumberContext):
-        return MaxNumberFeature(ctx.argument().parseable_key().getText(), self.__readable_name)
-
-    def visitMaxChar(self, ctx: SpecsParser.SpecsParser.MaxCharContext):
-        return MaxCharFeature(ctx.argument().parseable_key().getText(), self.__readable_name)
-
-
-def parse_feature(feature: str, readable_name: str) -> Feature:
-    input_stream = InputStream(feature)
-    lexer = SpecsLexer.SpecsLexer(input_stream)
-    token_stream = CommonTokenStream(lexer)
-    parser = SpecsParser.SpecsParser(token_stream)
-    feat_ctx = parser.feature()
-    feat = feat_ctx.accept(FeatureVisitor(readable_name))
-    if feat is None:
-        raise AssertionError(f"Could not parse: {readable_name}")
-    return feat
-"""
-
-
 def find_existence_index(features: List[Feature], feature: Feature):
     for idx, f in enumerate(features):
         if isinstance(f, ExistenceFeature) and f.key() == feature.key():
             return idx
     raise AssertionError("There is no existence feature with this key!")
-
-
-def extract_features(feature_file) -> List[Feature]:
-    """This function extracts a sorted list of features from the features file, which is generated
-    by substr grammar or the depth tool."""
-    depth_data = pandas.read_csv(
-        feature_file, dtype={"name": str, "depth": numpy.int32}, keep_default_na=False
-    )
-
-    depth_data["feature"] = depth_data["name"]
-    sorted_features = depth_data.sort_values(by=["name"])
-    return list(
-        map(
-            lambda r: parse_feature(r[1]["name"], r[1]["readable name"]),
-            sorted_features.iterrows(),
-        )
-    )

@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from typing import List, Optional
 
-from . import oracles
+from alhazen.oracle import OracleResult
 from . import treetools
 from .features import Feature
 
@@ -15,7 +15,7 @@ def tree_to_paths(tree, features: List[Feature | str]):
     # go through tree leaf by leaf
     for path in treetools.all_path(tree):
         requirements = []
-        is_bug = oracles.OracleResult.BUG == treetools.prediction_for_path(tree, path)
+        is_bug = OracleResult.BUG == treetools.prediction_for_path(tree, path)
         # find the requirements
         box = treetools.box(tree, path, feature_names=features).transpose()
         for feature, row in box.iterrows():
