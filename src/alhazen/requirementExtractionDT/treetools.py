@@ -35,7 +35,7 @@ def generic_feature_names(clf):
 
 
 def box(clf, path, data=None, feature_names=None):
-    """For a decision tree classifier clf and a path path (as returned, e.g. by all_path),
+    """For a decision tree classifier clf and a path (as returned, e.g. by all_path),
     this method gives a pandas DataFrame with the min and max of each feature value on the given path.
     """
 

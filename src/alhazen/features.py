@@ -55,6 +55,10 @@ class Feature(ABC):
         """Returns the feature value for a given derivation tree of an input."""
         pass
 
+    @abstractmethod
+    def is_valid(self, value):
+        pass
+
 
 class ExistenceFeature(Feature):
     """
@@ -93,6 +97,9 @@ class ExistenceFeature(Feature):
                 #  TODO What happens when A-> A ?? Is this a problem?
         raise AssertionError("This state should not be reachable. Feature evaluation does not work.")
 
+    def is_valid(self, value):
+        return value in [0, 1]
+
 
 class NumericInterpretation(Feature):
     """
@@ -127,6 +134,9 @@ class NumericInterpretation(Feature):
         except ValueError:
             pass
 
+    def is_valid(self, value):
+        return isinstance(value, int) or value == numpy.NAN
+
 
 class LengthFeature(Feature):
 
@@ -151,6 +161,9 @@ class LengthFeature(Feature):
         except ValueError:
             pass
 
+    def is_valid(self, value):
+        return value >= 0 or value == numpy.NAN
+
 
 class IsDigitFeature(Feature):
 
@@ -167,13 +180,16 @@ class IsDigitFeature(Feature):
         logging.debug(f"{self.name} evaluating is_digit for: {tree_to_string(derivation_tree)}")
         try:
             if isinstance(int(tree_to_string(derivation_tree)), int):
-                logging.debug(f"{self.name} is_digit is true fpr: {int(tree_to_string(derivation_tree))}")
+                logging.debug(f"{self.name} is_digit is true for: {int(tree_to_string(derivation_tree))}")
                 return True
         except ValueError:
             pass
 
         logging.debug(f"{self.name} is not true for: {len(tree_to_string(derivation_tree))}")
         return False
+
+    def is_valid(self, value):
+        return isinstance(value, bool) or value == numpy.NAN
 
 
 def extract_existence(grammar: Grammar) -> List[Feature]:
@@ -270,10 +286,6 @@ def extract_is_digit(grammar: Grammar) -> List[Feature]:
 
 
 IS_DIGIT_FEATURE = FeatureWrapper(IsDigitFeature, extract_is_digit)
-
-
-def get_all_features(grammar) -> List[Feature]:
-    return extract_existence(grammar) + extract_numeric(grammar) + extract_length(grammar) + extract_is_digit(grammar)
 
 
 STANDARD_FEATURES = {

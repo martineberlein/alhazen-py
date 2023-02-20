@@ -197,6 +197,12 @@ class TestInputSpecifications(unittest.TestCase):
                 )
                 self.assertEqual(str(input_specification), expected)
 
+    @unittest.skip
+    def test_grouped_rules(self):
+        from alhazen.requirementExtractionDT.treetools import grouped_rules
+
+        print(grouped_rules(self.clf))
+
 
 if __name__ == "__main__":
     unittest.main()

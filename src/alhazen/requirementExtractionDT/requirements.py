@@ -18,16 +18,6 @@ class Requirement:
     def feature(self) -> Feature:
         return self.__feature
 
-    def select(self, data):
-        """Returns a vector of booleans, suitable for selecting in a pandas data frame."""
-        if self.__mini is None:
-            return data[self.__feature.name()] <= self.__maxi
-        if self.__maxi is None:
-            return self.__mini <= data[self.__feature.name()]
-        return (self.__mini <= data[self.__feature.name()]) & (
-            data[self.__feature.name()] <= self.__maxi
-        )
-
     def mini(self):
         return self.__mini
 
@@ -114,13 +104,6 @@ class TreePath:
     @property
     def requirements(self) -> List[Requirement]:
         return self.__requirements
-
-    def find_sample(self, data):
-        for req in self.__requirements:
-            data = data[req.select(data)]
-        if 0 != len(data):
-            return data["abs_file"][0]
-        return None
 
     def __len__(self) -> int:
         return len(self.__requirements)

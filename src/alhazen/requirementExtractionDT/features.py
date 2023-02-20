@@ -35,16 +35,6 @@ class Feature:
     def __str__(self):
         return self.name()
 
-    def node_label(self, threshold):
-        rn = self.readable_name().replace('"', '\\"')
-        return f"{rn} <= {threshold}"
-
-    def left_label(self):
-        return "yes"
-
-    def right_label(self):
-        return "no"
-
 
 class ExistenceFeature(Feature):
     def __init__(self, key: str, readable_name: str):
@@ -55,15 +45,6 @@ class ExistenceFeature(Feature):
 
     def is_binary(self) -> bool:
         return True
-
-    def node_label(self, threshold):
-        return self.readable_name().replace('"', "'")
-
-    def left_label(self):
-        return "no"
-
-    def right_label(self):
-        return "yes"
 
     def name(self) -> str:
         return self._key
