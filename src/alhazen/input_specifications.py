@@ -1,116 +1,12 @@
-#!/usr/bin/env python
-
+import string
 import pandas
 from typing import List
-from alhazen.features import Feature
 
 from fuzzingbook.Parser import EarleyParser, tree_to_string
-import string
 from fuzzingbook.Grammars import Grammar
-from sklearn.tree import DecisionTreeClassifier
-from sklearn import tree
 
+from alhazen.features import Feature
 from alhazen.requirementExtractionDT.requirements import tree_to_paths
-
-# Features for each input, one dict per input
-features = [
-    {"function-sqrt": 1, "function-cos": 0, "function-sin": 0, "number": -900},
-    {"function-sqrt": 0, "function-cos": 1, "function-sin": 0, "number": 300},
-    {"function-sqrt": 1, "function-cos": 0, "function-sin": 0, "number": -1},
-    {"function-sqrt": 0, "function-cos": 1, "function-sin": 0, "number": -10},
-    {"function-sqrt": 0, "function-cos": 0, "function-sin": 1, "number": 36},
-    {"function-sqrt": 0, "function-cos": 0, "function-sin": 1, "number": -58},
-    {"function-sqrt": 1, "function-cos": 0, "function-sin": 0, "number": 27},
-]
-
-# Labels for each input
-oracle = ["BUG", "NO_BUG", "BUG", "NO_BUG", "NO_BUG", "NO_BUG", "NO_BUG"]
-
-# We can use the sklearn DictVectorizer to transform the features to numpy array:
-# Notice: Use the correct labeling of the feature_names
-
-# vec = DictVectorizer()
-# X_vec = vec.fit_transform(features).toarray()
-# feature_names = vec.get_feature_names_out()
-
-# We can also use a pandas DataFrame and directly parse it to the decision tree learner
-feature_names = ["function-sqrt", "function-cos", "function-sin", "number"]
-X_data = pandas.DataFrame.from_records(features)
-
-# Fix the random state to produce a deterministic result (for illustration purposes only)
-clf = DecisionTreeClassifier(random_state=10)
-
-# Train with DictVectorizer
-# clf = clf.fit(X_vec, oracle)
-
-# Train with Pandas Dataframe
-clf = clf.fit(X_data, oracle)
-
-import graphviz
-
-dot_data = tree.export_graphviz(
-    clf,
-    out_file=None,
-    feature_names=feature_names,
-    class_names=["BUG", "NO BUG"],
-    filled=True,
-    rounded=True,
-)
-graph = graphviz.Source(dot_data)
-
-graph
-
-
-all_paths = tree_to_paths(clf, feature_names)
-
-expected_paths = [
-    ("function-sqrt <= 0.5", False),
-    ("function-sqrt > 0.5 number <= 13.0", True),
-    ("function-sqrt > 0.5 number > 13.0", False),
-]
-
-for count, path in enumerate(all_paths):
-    string_path = path.get(0).get_str_ext()
-    for box in range(1, len(path)):
-        string_path += " " + path.get(box).get_str_ext()
-    assert (string_path, path.is_bug()) == expected_paths[
-        count
-    ], f"{string_path, path.is_bug()} is not equal to {expected_paths[count]}"
-
-
-x = pandas.DataFrame.from_records(features)
-bounds = (
-    pandas.DataFrame(
-        [{"feature": c, "min": x[c].min(), "max": x[c].max()} for c in feature_names],
-        columns=["feature", "min", "max"],
-    )
-    .set_index(["feature"])
-    .transpose()
-)
-
-
-# We can use the function `path.get(i).get_neg_ext(bounds)` to obtain a negation for a single requirement on a path (indexed with `i`).
-
-# Lets verify if we can negate a whole path.
-
-# #### `TEST`
-
-# In[ ]:
-
-
-expected_all_paths_negated = [
-    "function-sqrt > 0.5",
-    "function-sqrt <= 0.5 number > 13.0",
-    "function-sqrt <= 0.5 number <= 13.0",
-]
-
-for count, path in enumerate(all_paths):
-    negated_string_path = path.get(0).get_neg_ext(bounds)[0]
-    for box in range(1, len(path)):
-        negated_string_path += " " + str(path.get(box).get_neg_ext(bounds)[0])
-    assert (negated_string_path) == expected_all_paths_negated[
-        count
-    ], f"{negated_string_path} is not equal to {expected_all_paths_negated[count]}"
 
 
 def extracting_prediction_paths(clf, feature_names, data):
@@ -154,28 +50,6 @@ def all_combinations(reqs_lists):
                 t.append(i + [r])
         result = t
     return result
-
-
-new_prediction_paths = extracting_prediction_paths(clf, feature_names, data=x)
-
-
-expected_prediction_paths = {
-    "function-sqrt <= 0.5",
-    "function-sqrt <= 0.5, number <= 13.0",
-    "function-sqrt <= 0.5, number > 13.0",
-    "function-sqrt > 0.5",
-    "function-sqrt > 0.5, number <= 13.0",
-    "function-sqrt > 0.5, number > 13.0",
-}
-
-for expected_path in expected_prediction_paths:
-    assert (
-        expected_path in new_prediction_paths
-    ), f"Missing prediciton path: {expected_path}"
-
-assert len(expected_prediction_paths) == len(
-    new_prediction_paths
-), f"Too many prediction paths were generated (expected {len(expected_prediction_paths)}, got {len(new_prediction_paths)} )"
 
 
 SPECIFICATION_GRAMMAR: Grammar = {

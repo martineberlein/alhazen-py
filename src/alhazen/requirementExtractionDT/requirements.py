@@ -9,25 +9,6 @@ from . import treetools
 from .features import Feature
 
 
-def tree_to_paths(tree, features: List[Feature | str]):
-    logging.info("Extracting requirements from tree ...")
-    paths = []
-    # go through tree leaf by leaf
-    for path in treetools.all_path(tree):
-        requirements = []
-        is_bug = OracleResult.BUG == treetools.prediction_for_path(tree, path)
-        # find the requirements
-        box = treetools.box(tree, path, feature_names=features).transpose()
-        for feature, row in box.iterrows():
-            mini = row["min"]
-            maxi = row["max"]
-            if (not np.isinf(mini)) or (not np.isinf(maxi)):
-                requirements.append(Requirement(feature, mini, maxi))
-        paths.append(TreePath(None, is_bug, requirements))
-
-    return paths
-
-
 class Requirement:
     def __init__(self, feature: Feature, mini, maxi):
         self.__feature: Feature = feature
@@ -130,6 +111,10 @@ class TreePath:
     def get(self, idx):
         return self.__requirements[idx]
 
+    @property
+    def requirements(self) -> List[Requirement]:
+        return self.__requirements
+
     def find_sample(self, data):
         for req in self.__requirements:
             data = data[req.select(data)]
@@ -159,3 +144,22 @@ def min_digits(mini):
 
 def max_digits(maxi):
     return int("".join([9] * int(maxi)))
+
+
+def tree_to_paths(tree, features: List[Feature | str]) -> List[TreePath]:
+    logging.info("Extracting requirements from tree ...")
+    paths = []
+    # go through tree leaf by leaf
+    for path in treetools.all_path(tree):
+        requirements = []
+        is_bug = OracleResult.BUG == treetools.prediction_for_path(tree, path)
+        # find the requirements
+        box = treetools.box(tree, path, feature_names=features).transpose()
+        for feature, row in box.iterrows():
+            mini = row["min"]
+            maxi = row["max"]
+            if (not np.isinf(mini)) or (not np.isinf(maxi)):
+                requirements.append(Requirement(feature, mini, maxi))
+        paths.append(TreePath(None, is_bug, requirements))
+
+    return paths

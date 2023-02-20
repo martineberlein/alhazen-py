@@ -41,7 +41,7 @@ class Alhazen:
         self._data = None
         self._trees: List[DecisionTreeClassifier] = []
         self._generator_timeout: int = generator_timeout
-        self._syntactic_features = features
+        self._syntactic_features: Set[FeatureWrapper] = features
 
         assert is_valid_grammar(self._grammar)
 
