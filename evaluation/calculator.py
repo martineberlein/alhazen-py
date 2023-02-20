@@ -13,17 +13,18 @@ from alhazen import Alhazen
 
 from alhazen_formalizations.calculator import initial_inputs, grammar_alhazen as grammar, prop
 from alhazen.requirementExtractionDT.treetools import remove_unequal_decisions
-from alhazen.features import extract_existence, extract_numeric, collect_features
 from alhazen.oracle import OracleResult
 from alhazen.helper import show_tree
 from alhazen.input import Input
+from alhazen.feature_collector import Collector
+from alhazen.features import EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE
 
 MAX_ITERATION = 30
 
 
 if __name__ == '__main__':
     log = logging.getLogger()
-    log.setLevel(level=logging.DEBUG)
+    log.setLevel(level=logging.INFO)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s:  %(message)s")
     # log.setLevel(logging.DEBUG)
     alhazen = Alhazen(
@@ -35,7 +36,8 @@ if __name__ == '__main__':
     )
     trees = alhazen.run()
 
-    all_features = extract_existence(grammar) + extract_numeric(grammar)
+    collector = Collector(grammar=grammar, features={EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE})
+    all_features = collector.get_all_features()
 
     show_tree(trees[MAX_ITERATION-1], all_features)
     show_tree(remove_unequal_decisions(trees[MAX_ITERATION - 1]), all_features)
@@ -55,7 +57,7 @@ if __name__ == '__main__':
 
     d = []
     for inp in evaluation_data:
-        d.append(collect_features(inp, all_features))
+        d.append(collector.collect_features(inp))
 
     eval_feature_data = pandas.DataFrame.from_records(data=d)
 

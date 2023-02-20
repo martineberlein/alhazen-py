@@ -4,14 +4,11 @@ import pandas
 from typing import List
 from alhazen.features import Feature
 
-from fuzzingbook.GrammarFuzzer import GrammarFuzzer
-from fuzzingbook.Grammars import EXPR_GRAMMAR, Expansion
 from fuzzingbook.Parser import EarleyParser, tree_to_string
 import string
-from fuzzingbook.Grammars import Grammar, is_valid_grammar
+from fuzzingbook.Grammars import Grammar
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import tree
-import graphviz
 
 from alhazen.requirementExtractionDT.requirements import tree_to_paths
 

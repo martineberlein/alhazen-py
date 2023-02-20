@@ -1,19 +1,22 @@
-from typing import List, Dict
-from abc import ABC, abstractmethod
-from numpy import nanmax, isnan
-
-from collections import defaultdict
+import logging
 import re
+from abc import ABC, abstractmethod
+from collections import defaultdict
+from typing import Tuple, List, Optional, Any, Callable
 
-from fuzzingbook.Grammars import Grammar
-from fuzzingbook.GrammarFuzzer import expansion_to_children
+import numpy
 from fuzzingbook.GrammarFuzzer import tree_to_string
+from fuzzingbook.Grammars import Grammar
 from fuzzingbook.Grammars import reachable_nonterminals
-from fuzzingbook.Parser import EarleyParser
+from numpy import isnan
 
-from isla.derivation_tree import DerivationTree
+DerivationTree = Tuple[str, Optional[List[Any]]]
 
-from alhazen.input import Input
+
+class FeatureWrapper:
+    def __init__(self, dummy_feature, extract_grammar: Callable):
+        self.feature: Callable = dummy_feature
+        self.extract_from_grammar = extract_grammar
 
 
 class Feature(ABC):
@@ -21,8 +24,7 @@ class Feature(ABC):
     The abstract base class for grammar features.
 
     Args:
-        name : A unique identifier name for this feature. Should not contain Whitespaces.
-               e.g., 'type(<feature>@1)'
+        name : A unique identifier name for this feature.
         rule : The production rule (e.g., '<function>' or '<value>').
         key  : The feature key (e.g., the chosen alternative or rule itself).
     """
@@ -35,14 +37,21 @@ class Feature(ABC):
 
     def __repr__(self) -> str:
         """Returns a printable string representation of the feature."""
-        return self.name_rep()
+        return self.name
 
     @abstractmethod
-    def name_rep(self) -> str:
+    def __str__(self):
         pass
 
     @abstractmethod
-    def get_feature_value(self, derivation_tree) -> float:
+    def initialization_value(self):
+        """
+        Returns the initialization value to instantiate the feature table.
+        """
+        pass
+
+    @abstractmethod
+    def evaluate(self, derivation_tree, feature_table):
         """Returns the feature value for a given derivation tree of an input."""
         pass
 
@@ -54,8 +63,7 @@ class ExistenceFeature(Feature):
     For a given production rule P -> A | B, a production existence feature for P and
     alternative existence features for each alternative (i.e., A and B) are defined.
 
-    name : A unique identifier name for this feature. Should not contain Whitespaces.
-           e.g., 'exist(<digit>@1)'
+    name : A unique identifier name for this feature.
     rule : The production rule.
     key  : The feature key, equal to the rule attribute for production features,
            or equal to the corresponding alternative for alternative features.
@@ -64,40 +72,26 @@ class ExistenceFeature(Feature):
     def __init__(self, name: str, rule: str, key: str) -> None:
         super().__init__(name, rule, key)
 
-    def name_rep(self) -> str:
+    def __str__(self):
         if self.rule == self.key:
             return f"exists({self.rule})"
         else:
             return f"exists({self.rule} == {self.key})"
 
-    def get_feature_value(self, derivation_tree: DerivationTree) -> float:
-        """Counts the number of times this feature was matched in the derivation tree."""
+    def initialization_value(self):
+        return 0
+
+    def evaluate(self, derivation_tree, feature_table):
         (node, children) = derivation_tree
-
-        # The local match count (1 if the feature is matched for the current node, 0 if not)
-        count = 0
-
-        # First check if the current node can be matched with the rule
-        if node == self.rule:
-            # Production existence feature
-            if self.rule == self.key:
-                count = 1
-
-            # Production alternative existence feature
-            # We compare the children of the expansion with the actual children
-            else:
-                expansion_children = list(
-                    map(lambda x: x[0], expansion_to_children(self.key))
-                )
-                node_children = list(map(lambda x: x[0], children))
-                if expansion_children == node_children:
-                    count = 1
-
-        # Recursively compute the counts for all children and return the sum for the whole tree
-        for child in children:
-            count = max(count, self.get_feature_value(child))
-
-        return count
+        # When this feature is called it exists in the tree.
+        if self.rule == node and self.key == node:
+            return 1
+        else:
+            expansion = ''.join([child[0] for child in children])
+            if self.key == expansion:
+                return 1
+                #  TODO What happens when A-> A ?? Is this a problem?
+        raise AssertionError("This state should not be reachable. Feature evaluation does not work.")
 
 
 class NumericInterpretation(Feature):
@@ -115,36 +109,77 @@ class NumericInterpretation(Feature):
     def __init__(self, name: str, rule: str) -> None:
         super().__init__(name, rule, rule)
 
-    def name_rep(self) -> str:
+    def __str__(self) -> str:
         return f"num({self.key})"
 
-    def get_feature_value(self, derivation_tree: DerivationTree) -> float:
-        """Determines the maximum float of this feature in the derivation tree."""
-        (node, children) = derivation_tree
+    def initialization_value(self):
+        return numpy.NAN
 
-        value = float("nan")
-        if node == self.rule:
-            try:
-                # print(self.name, float(tree_to_string(derivation_tree)))
-                value = float(
-                    tree_to_string(derivation_tree)
-                )  # TODO here fuzzingbook Derivation Tree
-            except ValueError:
-                # print(self.name, float(tree_to_string(derivation_tree)), "err")
-                pass
-
-        # Return maximum value encountered in tree, ignoring all NaNs
-        tree_values = [value] + [self.get_feature_value(c) for c in children]
-        if all(isnan(tree_values)):
-            return value
-        else:
-            return nanmax(tree_values)
+    def evaluate(self, derivation_tree, feature_table):
+        try:
+            value = float(tree_to_string(derivation_tree))
+            logging.debug(f"{self.name} has feature-value length: {value}")
+            logging.debug(f"Feature table at feature {self.name} has value {feature_table[self.name]}"
+                          f" of type {type(feature_table[self.name])}")
+            if feature_table[self.name] < value or isnan(feature_table[self.name]):
+                logging.debug(f"Replacing feature-value {feature_table[self.name]} with {value}")
+                return value
+        except ValueError:
+            pass
 
 
-def extract_existence(grammar: Grammar) -> List[ExistenceFeature]:
+class LengthFeature(Feature):
+
+    def __init__(self, name: str, rule: str) -> None:
+        super().__init__(name, rule, rule)
+
+    def __str__(self) -> str:
+        return f"len({self.key})"
+
+    def initialization_value(self):
+        return numpy.NAN
+
+    def evaluate(self, derivation_tree, feature_table):
+        try:
+            value = len(tree_to_string(derivation_tree))
+            logging.debug(f"{self.name} has feature-value length: {len(tree_to_string(derivation_tree))}")
+            logging.debug(f"Feature table at feature {self.name} has value {feature_table[self.name]}"
+                          f" of type {type(feature_table[self.name])}")
+            if feature_table[self.name] < value or isnan(feature_table[self.name]):
+                logging.debug(f"Replacing feature-value {feature_table[self.name]} with {value}")
+                return float(value)
+        except ValueError:
+            pass
+
+
+class IsDigitFeature(Feature):
+
+    def __init__(self, name: str, rule: str) -> None:
+        super().__init__(name, rule, rule)
+
+    def __str__(self) -> str:
+        return f"is_digit({self.key})"
+
+    def initialization_value(self):
+        return numpy.NAN
+
+    def evaluate(self, derivation_tree, feature_table):
+        logging.debug(f"{self.name} evaluating is_digit for: {tree_to_string(derivation_tree)}")
+        try:
+            if isinstance(int(tree_to_string(derivation_tree)), int):
+                logging.debug(f"{self.name} is_digit is true fpr: {int(tree_to_string(derivation_tree))}")
+                return True
+        except ValueError:
+            pass
+
+        logging.debug(f"{self.name} is not true for: {len(tree_to_string(derivation_tree))}")
+        return False
+
+
+def extract_existence(grammar: Grammar) -> List[Feature]:
     """
-    Extracts all existence features from the grammar and returns them as a list.
-    grammar : The input grammar.
+        Extracts all existence features from the grammar and returns them as a list.
+        grammar : The input grammar.
     """
 
     features = []
@@ -154,21 +189,20 @@ def extract_existence(grammar: Grammar) -> List[ExistenceFeature]:
         features.append(ExistenceFeature(f"exists({rule})", rule, rule))
         # add all alternatives
         for count, expansion in enumerate(grammar[rule]):
-            features.append(
-                ExistenceFeature(f"exists({rule}@{count})", rule, expansion)
-            )
+            features.append(ExistenceFeature(f"exists({rule}@{count})", rule, expansion))
 
     return features
 
 
-RE_NONTERMINAL = re.compile(r"(<[^<> ]*>)")
+EXISTENCE_FEATURE = FeatureWrapper(ExistenceFeature, extract_existence)
+
+# Regex for non-terminal symbols in expansions
+RE_NONTERMINAL = re.compile(r'(<[^<> ]*>)')
 
 
-def extract_numeric(grammar: Grammar) -> List[NumericInterpretation]:
-    """
-    Extracts all numeric interpretation features from the grammar and returns them as a list.
-
-    grammar : The input grammar.
+def extract_numeric(grammar: Grammar) -> List[Feature]:
+    """ Extracts all numeric interpretation features from the grammar and returns them as a list.
+        grammar : The input grammar.
     """
 
     features = []
@@ -178,8 +212,9 @@ def extract_numeric(grammar: Grammar) -> List[NumericInterpretation]:
 
     for rule in grammar:
         for expansion in grammar[rule]:
+
             # Remove non-terminal symbols and whitespace from expansion
-            terminals = re.sub(RE_NONTERMINAL, "", expansion).replace(" ", "")
+            terminals = re.sub(RE_NONTERMINAL, '', expansion)  # .replace(' ', '')
 
             # Add each terminal char to the set of derivable chars
             for c in terminals:
@@ -201,114 +236,48 @@ def extract_numeric(grammar: Grammar) -> List[NumericInterpretation]:
         if not updated:
             break
 
-    numeric_chars = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "-"}
+    numeric_chars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
+    numeric_symbols = {'.', '-'}
 
     for key in derivable_chars:
-        # Check if derivable chars contain only numeric chars
-        if len(derivable_chars[key] - numeric_chars) == 0:
+        # Check if derivable chars contain only numeric numbers
+        # and check if at least one number is in the set of derivable chars
+        if len((derivable_chars[key] - numeric_chars)-numeric_symbols) == 0\
+                and len(derivable_chars[key].intersection(numeric_chars)) > 0:
             features.append(NumericInterpretation(f"num({key})", key))
 
     return features
 
 
-def get_all_features(grammar: Grammar) -> List[Feature]:
-    return extract_existence(grammar) + extract_numeric(grammar)
+NUMERIC_INTERPRETATION_FEATURE = FeatureWrapper(NumericInterpretation, extract_numeric)
 
 
-def test_features(features: List[Feature]) -> None:
-    existence_features = 0
-    numeric_features = 0
-
-    for feature in features:
-        if isinstance(feature, ExistenceFeature):
-            existence_features += 1
-        elif isinstance(feature, NumericInterpretation):
-            numeric_features += 1
-
-    assert existence_features == 27
-    assert numeric_features == 4
-
-    expected_feature_names = [
-        "exists(<start>)",
-        "exists(<start> == <function>(<term>))",
-        "exists(<function>)",
-        "exists(<function> == sqrt)",
-        "exists(<function> == tan)",
-        "exists(<function> == cos)",
-        "exists(<function> == sin)",
-        "exists(<term>)",
-        "exists(<term> == -<value>)",
-        "exists(<term> == <value>)",
-        "exists(<value>)",
-        "exists(<value> == <integer>.<integer>)",
-        "exists(<value> == <integer>)",
-        "exists(<integer>)",
-        "exists(<integer> == <digit><integer>)",
-        "exists(<integer> == <digit>)",
-        "exists(<digit>)",
-        "exists(<digit> == 0)",
-        "exists(<digit> == 1)",
-        "exists(<digit> == 2)",
-        "exists(<digit> == 3)",
-        "exists(<digit> == 4)",
-        "exists(<digit> == 5)",
-        "exists(<digit> == 6)",
-        "exists(<digit> == 7)",
-        "exists(<digit> == 8)",
-        "exists(<digit> == 9)",
-        "num(<term>)",
-        "num(<value>)",
-        "num(<digit>)",
-        "num(<integer>)",
-    ]
-
-    actual_feature_names = list(map(lambda f: f.name_rep(), features))
-
-    for feature_name in expected_feature_names:
-        assert (
-            feature_name in actual_feature_names
-        ), f"Missing feature with name: {feature_name}"
-
-    print("All checks passed!")
-
-
-def collect_features(test_input: Input, all_features: List[Feature]) -> Dict:
-    parsed_features = {}  # {"sample": str(test_input.tree)}
-    for feature in all_features:
-        parsed_features[feature.name] = 0
-        parsed_features[feature.name] = feature.get_feature_value(
-            test_input.tree
-        )  # TODO can be done prettier!
-
-    return parsed_features
-
-
-def get_feature_vector(sample, grammar, features):
-    """Returns the feature vector of the sample as a dictionary of feature values"""
-
-    feature_dict = defaultdict(int)
-
-    earley = EarleyParser(grammar)
-    for tree in earley.parse(sample):
-        for feature in features:
-            feature_dict[feature.name] = feature.get_feature_value(tree)
-
-    return feature_dict
-
-
-def compute_feature_values(sample: str, grammar: Grammar) -> Dict[str, float]:
-    """
-    Extracts all feature values from an input.
-
-    sample   : The input.
-    grammar  : The input grammar.
-    features : The list of input features extracted from the grammar.
-
-    """
-    parser = EarleyParser(grammar)
-
-    features = {}
-    for tree in parser.parse(sample):
-        for feature in get_all_features(grammar):
-            features[feature.name_rep()] = feature.get_feature_value(tree)
+def extract_length(grammar: Grammar) -> List[Feature]:
+    features = []
+    for rule in grammar:
+        features.append(LengthFeature(f"len({rule})", rule))
     return features
+
+
+LENGTH_FEATURE = FeatureWrapper(LengthFeature, extract_length)
+
+
+def extract_is_digit(grammar: Grammar) -> List[Feature]:
+    features = []
+    for rule in grammar:
+        features.append(IsDigitFeature(f"is_digit({rule})", rule))
+    return features
+
+
+IS_DIGIT_FEATURE = FeatureWrapper(IsDigitFeature, extract_is_digit)
+
+
+def get_all_features(grammar) -> List[Feature]:
+    return extract_existence(grammar) + extract_numeric(grammar) + extract_length(grammar) + extract_is_digit(grammar)
+
+
+STANDARD_FEATURES = {
+    EXISTENCE_FEATURE,
+    NUMERIC_INTERPRETATION_FEATURE,
+    LENGTH_FEATURE
+}
