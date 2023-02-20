@@ -4,8 +4,6 @@ import random
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Dict
 
-import pandas
-
 from fuzzingbook.Parser import EarleyParser
 from fuzzingbook.GrammarFuzzer import (
     tree_to_string,
@@ -21,7 +19,7 @@ from alhazen.features import (
 )
 
 from alhazen.input_specifications import InputSpecification, Requirement
-from alhazen.features import collect_features
+from alhazen.feature_collector import Collector
 from alhazen.input import Input
 
 from fuzzingbook.GrammarFuzzer import GrammarFuzzer
@@ -31,11 +29,10 @@ from isla.derivation_tree import DerivationTree
 def best_trees(forest, spec, grammar):
     samples = [tree for tree in forest]
     fulfilled_fractions = []
-    grammar_features: List[Feature] = extract_existence(grammar) + extract_numeric(grammar)
+
+    collector = Collector(grammar)
     for sample in samples:
-        gen_features = collect_features(
-            Input(tree=DerivationTree.from_parse_tree(sample)), grammar_features
-        )
+        gen_features = collector.collect_features(Input(tree=DerivationTree.from_parse_tree(sample)))
 
         # calculate percentage of fulfilled requirements (used to rank the sample)
         fulfilled_count = 0
@@ -206,11 +203,11 @@ class AdvancedGenerator(Generator):
     ):
         super().__init__(grammar, timeout=timeout)
 
+        self._collector = Collector(grammar=grammar)
+
         if grammar_features is None:
-            self.grammar_features: List[Feature] = extract_existence(
-                self.grammar
-            ) + extract_numeric(self.grammar)
-        self._grammar_features = grammar_features
+            self._grammar_features = self._collector.get_all_features()
+        self._grammar_features = grammar_features  # This can become problematic!
 
     @staticmethod
     def validate_requirement(input_features: Dict, requirement: Requirement) -> bool:
@@ -251,7 +248,7 @@ class AdvancedGenerator(Generator):
             Tuple[bool, str]
         """
         assert isinstance(test_input, Input)
-        features = collect_features(test_input, self.grammar_features)
+        features = self._collector.collect_features(test_input)
 
         count = len(specification.requirements)
         for requirement in specification.requirements:

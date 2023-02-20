@@ -1,9 +1,5 @@
 import unittest
 
-from alhazen.features import (
-    ExistenceFeature,
-    NumericInterpretation,
-)
 from alhazen.input_specifications import Requirement, InputSpecification
 from alhazen.generator import (
     SimpleGenerator,
@@ -12,6 +8,7 @@ from alhazen.generator import (
     generate_samples_advanced,
 )
 from alhazen_formalizations.calculator import grammar
+from alhazen.features import ExistenceFeature, NumericInterpretation
 
 
 class TestGenerator(unittest.TestCase):

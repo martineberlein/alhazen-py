@@ -9,18 +9,13 @@ from fuzzingbook.Parser import EarleyParser
 from sklearn.tree import DecisionTreeClassifier
 from isla.derivation_tree import DerivationTree
 
-from alhazen.features import (
-    extract_existence,
-    extract_numeric,
-    collect_features,
-    Feature,
-)
-
 from alhazen.input import Input
 from alhazen.learner import train_tree, Learner, DecisionTreeLearner
 from alhazen.generator import SimpleGenerator, Generator
 from alhazen.input_specifications import get_all_input_specifications
 from alhazen.oracle import OracleResult
+from alhazen.features import FeatureWrapper, STANDARD_FEATURES
+from alhazen.feature_collector import Collector
 
 GENERATOR_TIMEOUT = 10  # timeout in seconds
 MAX_ITERATION = 20
@@ -36,6 +31,7 @@ class Alhazen:
         generator_timeout: int = 10,
         generator: Union[Generator | None] = None,
         learner: Union[Learner | None] = None,
+        features: Set[FeatureWrapper] = STANDARD_FEATURES,
     ):
         self._initial_inputs: List[str] = initial_inputs
         self._grammar: grammar = grammar
@@ -45,8 +41,14 @@ class Alhazen:
         self._data = None
         self._trees: List[DecisionTreeClassifier] = []
         self._generator_timeout: int = generator_timeout
+        self._syntactic_features = features
 
         assert is_valid_grammar(self._grammar)
+
+        # Syntactic Feature Collection
+        self._collector: Collector = Collector(self._grammar, self._syntactic_features)
+        self._all_features = self._collector.get_all_features()
+        self._feature_names = [f.name for f in self._all_features]
 
         if generator is None:
             self._generator: Generator = SimpleGenerator(self._grammar)
@@ -77,11 +79,6 @@ class Alhazen:
                     "Alhazen-py: Could not parse initial inputs with given grammar!"
                 )
                 sys.exit(-1)
-
-        self._all_features: List[Feature] = extract_existence(
-            self._grammar
-        ) + extract_numeric(self._grammar)
-        self._feature_names = [f.name for f in self._all_features]
 
     def _add_new_data(self, test_inputs: Set[Input]):
         data = []
@@ -116,7 +113,7 @@ class Alhazen:
 
         # collect features from the new samples (Activity 1)
         for inp in test_inputs:
-            inp.features = collect_features(inp, self._all_features)
+            inp.features = self._collector.collect_features(inp)
 
         # combine the new data with the already existing data
         self._add_new_data(test_inputs)

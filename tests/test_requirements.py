@@ -6,13 +6,6 @@ from fuzzingbook.Parser import EarleyParser, tree_to_string, is_valid_grammar
 from isla.derivation_tree import DerivationTree
 
 from alhazen.requirementExtractionDT.requirements import tree_to_paths
-from alhazen.features import (
-    ExistenceFeature,
-    NumericInterpretation,
-    collect_features,
-    extract_existence,
-    extract_numeric,
-)
 from alhazen.input_specifications import (
     Requirement,
     InputSpecification,
@@ -22,6 +15,16 @@ from alhazen.input_specifications import (
 from alhazen.generator import AdvancedGenerator
 from alhazen_formalizations.calculator import grammar
 from alhazen.input import Input
+from alhazen.feature_collector import Collector
+from alhazen.features import (
+    EXISTENCE_FEATURE,
+    NUMERIC_INTERPRETATION_FEATURE,
+    ExistenceFeature,
+    NumericInterpretation,
+)
+
+
+FEATURES = {EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE}
 
 
 class TestInputSpecifications(unittest.TestCase):
@@ -43,7 +46,8 @@ class TestInputSpecifications(unittest.TestCase):
         clf = DecisionTreeClassifier(random_state=10)
         self.clf = clf.fit(x_data, oracle)
 
-        self.grammar_features = extract_existence(grammar) + extract_numeric(grammar)
+        self.collector = Collector(grammar=grammar, features=FEATURES)
+        self.grammar_features = self.collector.get_all_features()
 
     def test_validation_requirement(self):
         exist_sqrt = ExistenceFeature("exists(<function>@0)", "<function>", "sqrt")
@@ -54,7 +58,7 @@ class TestInputSpecifications(unittest.TestCase):
             next(EarleyParser(grammar).parse(inp))
         )
         test_input = Input(derivation_tree)
-        inp_features = collect_features(test_input, self.grammar_features)
+        inp_features = self.collector.collect_features(test_input)
 
         generator = AdvancedGenerator(grammar)
         result = generator.validate_requirement(
@@ -137,14 +141,14 @@ class TestInputSpecifications(unittest.TestCase):
             "NewInputSpecification(Requirement(exists(<function>@0) > 0.5))",
         ]
 
-        all_features = extract_existence(grammar) + extract_numeric(grammar)
-
-        earley = EarleyParser(SPECIFICATION_GRAMMAR)
+        parser = EarleyParser(SPECIFICATION_GRAMMAR)
         for sample, expected in zip(
             sample_prediction_paths, expected_input_specifications
         ):
-            for tree in earley.parse(sample):
-                input_specification = create_new_input_specification(tree, all_features)
+            for tree in parser.parse(sample):
+                input_specification = create_new_input_specification(
+                    tree, self.grammar_features
+                )
                 self.assertEqual(str(input_specification), expected)
 
 

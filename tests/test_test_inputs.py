@@ -6,8 +6,12 @@ from fuzzingbook.Parser import EarleyParser
 
 from alhazen_formalizations.calculator import grammar_alhazen as grammar, prop
 from alhazen.oracle import OracleResult
-from alhazen.features import collect_features, extract_existence, extract_numeric
+from alhazen.feature_collector import Collector
+from alhazen.features import EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE
 from alhazen.input import Input
+
+
+FEATURES = {EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE}
 
 
 class TestInputs(unittest.TestCase):
@@ -23,6 +27,8 @@ class TestInputs(unittest.TestCase):
                     )
                 )
             )
+
+        self.collector = Collector(grammar=grammar, features=FEATURES)
 
     def test_test_inputs(self):
         inputs = {"sqrt(-900)", "cos(10)"}
@@ -47,16 +53,14 @@ class TestInputs(unittest.TestCase):
         )
 
     def test_input_execution(self):
-        inputs = {"sqrt(-900)", "cos(10)"}
-
         for inp in self.test_inputs:
             inp.oracle = prop(inp.tree)
 
     def test_feature_extraction(self):
-        self._all_features = extract_existence(grammar) + extract_numeric(grammar)
+        self._all_features = self.collector.get_all_features()
 
         for inp in self.test_inputs:
-            inp.features = collect_features(inp, self._all_features)
+            inp.features = self.collector.collect_features(inp)
 
 
 if __name__ == "__main__":
