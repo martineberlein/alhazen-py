@@ -91,11 +91,13 @@ class ExistenceFeature(Feature):
         if self.rule == node and self.key == node:
             return 1
         else:
-            expansion = ''.join([child[0] for child in children])
+            expansion = "".join([child[0] for child in children])
             if self.key == expansion:
                 return 1
                 #  TODO What happens when A-> A ?? Is this a problem?
-        raise AssertionError("This state should not be reachable. Feature evaluation does not work.")
+        raise AssertionError(
+            "This state should not be reachable. Feature evaluation does not work."
+        )
 
     def is_valid(self, value):
         return value in [0, 1]
@@ -126,10 +128,14 @@ class NumericInterpretation(Feature):
         try:
             value = float(tree_to_string(derivation_tree))
             logging.debug(f"{self.name} has feature-value length: {value}")
-            logging.debug(f"Feature table at feature {self.name} has value {feature_table[self.name]}"
-                          f" of type {type(feature_table[self.name])}")
+            logging.debug(
+                f"Feature table at feature {self.name} has value {feature_table[self.name]}"
+                f" of type {type(feature_table[self.name])}"
+            )
             if feature_table[self.name] < value or isnan(feature_table[self.name]):
-                logging.debug(f"Replacing feature-value {feature_table[self.name]} with {value}")
+                logging.debug(
+                    f"Replacing feature-value {feature_table[self.name]} with {value}"
+                )
                 return value
         except ValueError:
             pass
@@ -139,7 +145,6 @@ class NumericInterpretation(Feature):
 
 
 class LengthFeature(Feature):
-
     def __init__(self, name: str, rule: str) -> None:
         super().__init__(name, rule, rule)
 
@@ -152,11 +157,17 @@ class LengthFeature(Feature):
     def evaluate(self, derivation_tree, feature_table):
         try:
             value = len(tree_to_string(derivation_tree))
-            logging.debug(f"{self.name} has feature-value length: {len(tree_to_string(derivation_tree))}")
-            logging.debug(f"Feature table at feature {self.name} has value {feature_table[self.name]}"
-                          f" of type {type(feature_table[self.name])}")
+            logging.debug(
+                f"{self.name} has feature-value length: {len(tree_to_string(derivation_tree))}"
+            )
+            logging.debug(
+                f"Feature table at feature {self.name} has value {feature_table[self.name]}"
+                f" of type {type(feature_table[self.name])}"
+            )
             if feature_table[self.name] < value or isnan(feature_table[self.name]):
-                logging.debug(f"Replacing feature-value {feature_table[self.name]} with {value}")
+                logging.debug(
+                    f"Replacing feature-value {feature_table[self.name]} with {value}"
+                )
                 return float(value)
         except ValueError:
             pass
@@ -166,7 +177,6 @@ class LengthFeature(Feature):
 
 
 class IsDigitFeature(Feature):
-
     def __init__(self, name: str, rule: str) -> None:
         super().__init__(name, rule, rule)
 
@@ -177,15 +187,21 @@ class IsDigitFeature(Feature):
         return numpy.NAN
 
     def evaluate(self, derivation_tree, feature_table):
-        logging.debug(f"{self.name} evaluating is_digit for: {tree_to_string(derivation_tree)}")
+        logging.debug(
+            f"{self.name} evaluating is_digit for: {tree_to_string(derivation_tree)}"
+        )
         try:
             if isinstance(int(tree_to_string(derivation_tree)), int):
-                logging.debug(f"{self.name} is_digit is true for: {int(tree_to_string(derivation_tree))}")
+                logging.debug(
+                    f"{self.name} is_digit is true for: {int(tree_to_string(derivation_tree))}"
+                )
                 return True
         except ValueError:
             pass
 
-        logging.debug(f"{self.name} is not true for: {len(tree_to_string(derivation_tree))}")
+        logging.debug(
+            f"{self.name} is not true for: {len(tree_to_string(derivation_tree))}"
+        )
         return False
 
     def is_valid(self, value):
@@ -194,8 +210,8 @@ class IsDigitFeature(Feature):
 
 def extract_existence(grammar: Grammar) -> List[Feature]:
     """
-        Extracts all existence features from the grammar and returns them as a list.
-        grammar : The input grammar.
+    Extracts all existence features from the grammar and returns them as a list.
+    grammar : The input grammar.
     """
 
     features = []
@@ -205,7 +221,9 @@ def extract_existence(grammar: Grammar) -> List[Feature]:
         features.append(ExistenceFeature(f"exists({rule})", rule, rule))
         # add all alternatives
         for count, expansion in enumerate(grammar[rule]):
-            features.append(ExistenceFeature(f"exists({rule}@{count})", rule, expansion))
+            features.append(
+                ExistenceFeature(f"exists({rule}@{count})", rule, expansion)
+            )
 
     return features
 
@@ -213,12 +231,12 @@ def extract_existence(grammar: Grammar) -> List[Feature]:
 EXISTENCE_FEATURE = FeatureWrapper(ExistenceFeature, extract_existence)
 
 # Regex for non-terminal symbols in expansions
-RE_NONTERMINAL = re.compile(r'(<[^<> ]*>)')
+RE_NONTERMINAL = re.compile(r"(<[^<> ]*>)")
 
 
 def extract_numeric(grammar: Grammar) -> List[Feature]:
-    """ Extracts all numeric interpretation features from the grammar and returns them as a list.
-        grammar : The input grammar.
+    """Extracts all numeric interpretation features from the grammar and returns them as a list.
+    grammar : The input grammar.
     """
 
     features = []
@@ -228,9 +246,8 @@ def extract_numeric(grammar: Grammar) -> List[Feature]:
 
     for rule in grammar:
         for expansion in grammar[rule]:
-
             # Remove non-terminal symbols and whitespace from expansion
-            terminals = re.sub(RE_NONTERMINAL, '', expansion)  # .replace(' ', '')
+            terminals = re.sub(RE_NONTERMINAL, "", expansion)  # .replace(' ', '')
 
             # Add each terminal char to the set of derivable chars
             for c in terminals:
@@ -252,14 +269,16 @@ def extract_numeric(grammar: Grammar) -> List[Feature]:
         if not updated:
             break
 
-    numeric_chars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
-    numeric_symbols = {'.', '-'}
+    numeric_chars = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
+    numeric_symbols = {".", "-"}
 
     for key in derivable_chars:
         # Check if derivable chars contain only numeric numbers
         # and check if at least one number is in the set of derivable chars
-        if len((derivable_chars[key] - numeric_chars)-numeric_symbols) == 0\
-                and len(derivable_chars[key].intersection(numeric_chars)) > 0:
+        if (
+            len((derivable_chars[key] - numeric_chars) - numeric_symbols) == 0
+            and len(derivable_chars[key].intersection(numeric_chars)) > 0
+        ):
             features.append(NumericInterpretation(f"num({key})", key))
 
     return features
@@ -288,8 +307,4 @@ def extract_is_digit(grammar: Grammar) -> List[Feature]:
 IS_DIGIT_FEATURE = FeatureWrapper(IsDigitFeature, extract_is_digit)
 
 
-STANDARD_FEATURES = {
-    EXISTENCE_FEATURE,
-    NUMERIC_INTERPRETATION_FEATURE,
-    LENGTH_FEATURE
-}
+STANDARD_FEATURES = {EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE, LENGTH_FEATURE}
