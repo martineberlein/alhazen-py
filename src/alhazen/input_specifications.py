@@ -154,36 +154,3 @@ def create_new_input_specification(derivation_tree, all_features) -> InputSpecif
         requirement_list.append(Requirement(feature_class, quant, value))
 
     return InputSpecification(requirement_list)
-
-
-def get_all_input_specifications(
-    dec_tree, all_features: List[Feature], feature_names: List[str], data
-) -> List[InputSpecification]:
-    """
-    Returns a complete list new input specification that were extracted from a learned decision tree.
-
-    INPUT:
-        - dec_tree       : The learned decision tree.
-        - all_features   : A list of all features
-        - feature_names  : The list of the feature names (feature.name)
-        - data.          : The data that was used to learn the decision tree
-
-    OUTPUT:
-        - Returns a list of InputSpecifications
-    """
-    prediction_paths = extracting_prediction_paths(dec_tree, feature_names, data)
-    input_specifications = []
-
-    for r in prediction_paths:
-        parser = EarleyParser(SPECIFICATION_GRAMMAR)
-        try:
-            for tree in parser.parse(r):
-                input_specifications.append(
-                    create_new_input_specification(tree, all_features)
-                )
-        except SyntaxError:
-            # Catch Parsing Syntax Errors: num(<term>) in [-900, 0] will fail; Might fix later
-            # For now, inputs following that form will be ignored
-            pass
-
-    return input_specifications

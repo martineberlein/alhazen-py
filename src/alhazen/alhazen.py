@@ -10,9 +10,8 @@ from sklearn.tree import DecisionTreeClassifier
 from isla.derivation_tree import DerivationTree
 
 from alhazen.input import Input
-from alhazen.learner import train_tree, Learner, DecisionTreeLearner
+from alhazen.learner import Learner, DecisionTreeLearner
 from alhazen.generator import SimpleGenerator, Generator
-from alhazen.input_specifications import get_all_input_specifications
 from alhazen.oracle import OracleResult
 from alhazen.features import FeatureWrapper, STANDARD_FEATURES
 from alhazen.feature_collector import Collector
@@ -39,7 +38,7 @@ class Alhazen:
         self._max_iter: int = max_iter
         self._previous_samples: Set[Input] = set()
         self._data = None
-        self._trees: List[DecisionTreeClassifier] = []
+        self._models: List = []
         self._generator_timeout: int = generator_timeout
         self._syntactic_features: Set[FeatureWrapper] = features
 
@@ -96,8 +95,10 @@ class Alhazen:
             else:
                 self._data = concat([self._data, new_data], sort=False)
 
+        return self._data
+
     def _finalize(self):
-        return self._trees
+        return self._models
 
     def run(self) -> List:
         for iteration in range(self._max_iter):
@@ -116,15 +117,14 @@ class Alhazen:
             inp.features = self._collector.collect_features(inp)
 
         # combine the new data with the already existing data
-        self._add_new_data(test_inputs)
+        learning_data = self._add_new_data(test_inputs)
 
         # train a tree (Activity 2)
-        dec_tree = train_tree(self._data)
-        self._trees.append(dec_tree)
+        model = self._learner.train(learning_data)
+        self._models.append(model)
 
-        # extract new requirements from the tree (Activity 3)
-        new_input_specifications = get_all_input_specifications(
-            dec_tree,
+        new_input_specifications = self._learner.get_input_specifications(
+            model,
             self._all_features,
             self._feature_names,
             self._data.drop(["oracle"], axis=1),
