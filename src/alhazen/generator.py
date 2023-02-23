@@ -32,7 +32,9 @@ def best_trees(forest, spec, grammar):
 
     collector = Collector(grammar)
     for sample in samples:
-        gen_features = collector.collect_features(Input(tree=DerivationTree.from_parse_tree(sample)))
+        gen_features = collector.collect_features(
+            Input(tree=DerivationTree.from_parse_tree(sample))
+        )
 
         # calculate percentage of fulfilled requirements (used to rank the sample)
         fulfilled_count = 0

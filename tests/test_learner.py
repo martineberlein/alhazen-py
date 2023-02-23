@@ -3,10 +3,9 @@ import unittest
 import pandas
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.feature_extraction import DictVectorizer
-from sklearn import tree
 
 from alhazen.oracle import OracleResult
-from alhazen.learner import train_tree
+from alhazen.learner import Learner, DecisionTreeLearner
 
 
 class TestLearner(unittest.TestCase):
@@ -105,7 +104,7 @@ class TestLearner(unittest.TestCase):
         ]
 
         data = pandas.DataFrame.from_records(data=raw_data)
-        clf = train_tree(data)
+        clf = DecisionTreeLearner().train(data)
 
         self.assertTrue(isinstance(clf, DecisionTreeClassifier))
 

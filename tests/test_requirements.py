@@ -11,6 +11,7 @@ from alhazen.input_specifications import (
     InputSpecification,
     SPECIFICATION_GRAMMAR,
     create_new_input_specification,
+    extracting_prediction_paths,
 )
 from alhazen.generator import AdvancedGenerator
 from alhazen_formalizations.calculator import grammar
@@ -41,10 +42,10 @@ class TestInputSpecifications(unittest.TestCase):
         oracle = ["BUG", "NO_BUG", "BUG", "NO_BUG", "NO_BUG", "NO_BUG", "NO_BUG"]
 
         self.feature_names = ["function-sqrt", "function-cos", "function-sin", "number"]
-        x_data = pandas.DataFrame.from_records(features)
+        self.x_data = pandas.DataFrame.from_records(features)
 
         clf = DecisionTreeClassifier(random_state=10)
-        self.clf = clf.fit(x_data, oracle)
+        self.clf = clf.fit(self.x_data, oracle)
 
         self.collector = Collector(grammar=grammar, features=FEATURES)
         self.grammar_features = self.collector.get_all_features()
@@ -111,6 +112,51 @@ class TestInputSpecifications(unittest.TestCase):
                 string_path += " " + path.get(box).get_str_ext()
             self.assertEqual((string_path, path.is_bug()), expected)
 
+    def test_tree_path_negation(self):
+        expected_all_paths_negated = [
+            "function-sqrt > 0.5",
+            "function-sqrt <= 0.5 number > 13.0",
+            "function-sqrt <= 0.5 number <= 13.0",
+        ]
+
+        x = pandas.DataFrame.from_records(self.x_data)
+        bounds = (
+            pandas.DataFrame(
+                [
+                    {"feature": c, "min": x[c].min(), "max": x[c].max()}
+                    for c in self.feature_names
+                ],
+                columns=["feature", "min", "max"],
+            )
+            .set_index(["feature"])
+            .transpose()
+        )
+        all_paths = tree_to_paths(self.clf, self.feature_names)
+
+        for path, expected in zip(all_paths, expected_all_paths_negated):
+            negated_string_path = path.get(0).get_neg_ext(bounds)[0]
+            for box in range(1, len(path)):
+                negated_string_path += " " + str(path.get(box).get_neg_ext(bounds)[0])
+            self.assertEqual(negated_string_path, expected)
+
+    def test_new_prediction_paths(self):
+        expected_prediction_paths = {
+            "function-sqrt <= 0.5",
+            "function-sqrt <= 0.5, number <= 13.0",
+            "function-sqrt <= 0.5, number > 13.0",
+            "function-sqrt > 0.5",
+            "function-sqrt > 0.5, number <= 13.0",
+            "function-sqrt > 0.5, number > 13.0",
+        }
+
+        new_prediction_paths = extracting_prediction_paths(
+            self.clf, self.feature_names, data=self.x_data
+        )
+
+        self.assertEqual(len(new_prediction_paths), len(expected_prediction_paths))
+        for path in new_prediction_paths:
+            self.assertIn(path, expected_prediction_paths)
+
     def test_specification_grammar(self):
         self.assertTrue(is_valid_grammar(SPECIFICATION_GRAMMAR))
 
@@ -150,6 +196,12 @@ class TestInputSpecifications(unittest.TestCase):
                     tree, self.grammar_features
                 )
                 self.assertEqual(str(input_specification), expected)
+
+    @unittest.skip
+    def test_grouped_rules(self):
+        from alhazen.requirementExtractionDT.treetools import grouped_rules
+
+        print(grouped_rules(self.clf))
 
 
 if __name__ == "__main__":

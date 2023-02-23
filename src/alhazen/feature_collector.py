@@ -11,7 +11,6 @@ from alhazen.input import Input
 
 
 class Collector:
-
     def __init__(self, grammar, features=None):
         if features is None:
             features = STANDARD_FEATURES
@@ -28,7 +27,9 @@ class Collector:
 
         features = []
         for feature_class in self._features:
-            features = features + feature_class.extract_from_grammar(grammar=self._grammar)
+            features = features + feature_class.extract_from_grammar(
+                grammar=self._grammar
+            )
         assert len(features) != 0, "Could not extract any features."
         return features
 
@@ -40,7 +41,9 @@ class Collector:
         return pandas.DataFrame.from_records(data)
 
     def collect_features(self, test_input: Input) -> Dict:
-        assert isinstance(test_input.tree, DerivationTree), "Inputs is not a derivation tree."
+        assert isinstance(
+            test_input.tree, DerivationTree
+        ), "Inputs is not a derivation tree."
         parsed_features = {}
         # initiate dictionary
         for feature in self.all_features:
@@ -59,20 +62,22 @@ class Collector:
         corresponding_features_1d = self.get_corresponding_feature(node, node)
 
         for corresponding_feature in corresponding_features_1d:
-            assert feature_table[corresponding_feature.name] is not None, f"Feature {corresponding_feature.name} is " \
-                                                                     f"not in the feature table"
+            assert feature_table[corresponding_feature.name] is not None, (
+                f"Feature {corresponding_feature.name} is " f"not in the feature table"
+            )
             value = corresponding_feature.evaluate(tree, feature_table)
             if value is not None:
                 feature_table[corresponding_feature.name] = value
 
         # Get features that correspond to this node
         # Get all two-dimensional features, e.g., the Existence of a Derivation Sequences A-> BD
-        expansion = ''.join([child[0] for child in children])
+        expansion = "".join([child[0] for child in children])
         corresponding_features_2d = self.get_corresponding_feature(node, expansion)
 
         for corresponding_feature in corresponding_features_2d:
-            assert feature_table[corresponding_feature.name] is not None, f"Feature {corresponding_feature.name} is " \
-                                                                     f"not in the feature table"
+            assert feature_table[corresponding_feature.name] is not None, (
+                f"Feature {corresponding_feature.name} is " f"not in the feature table"
+            )
             value = corresponding_feature.evaluate(tree, feature_table)
             if value is not None:
                 feature_table[corresponding_feature.name] = value
@@ -82,7 +87,9 @@ class Collector:
                 self.feature_collection(child, feature_table)
 
     @lru_cache
-    def get_corresponding_feature(self, feature_rule: str, feature_key: str) -> List[Feature]:
+    def get_corresponding_feature(
+        self, feature_rule: str, feature_key: str
+    ) -> List[Feature]:
         feature_list = []
         for feature in self.all_features:
             if feature.rule == feature_rule and feature.key == feature_key:
@@ -100,4 +107,3 @@ def get_all_features_n(features_set: Set[FeatureWrapper], grammar: Grammar):
         features = features + feature_class.extract_from_grammar(grammar=grammar)
     assert len(features) != 0, "Could not extract any features."
     return features
-

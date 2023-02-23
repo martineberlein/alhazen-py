@@ -9,25 +9,6 @@ from . import treetools
 from .features import Feature
 
 
-def tree_to_paths(tree, features: List[Feature | str]):
-    logging.info("Extracting requirements from tree ...")
-    paths = []
-    # go through tree leaf by leaf
-    for path in treetools.all_path(tree):
-        requirements = []
-        is_bug = OracleResult.BUG == treetools.prediction_for_path(tree, path)
-        # find the requirements
-        box = treetools.box(tree, path, feature_names=features).transpose()
-        for feature, row in box.iterrows():
-            mini = row["min"]
-            maxi = row["max"]
-            if (not np.isinf(mini)) or (not np.isinf(maxi)):
-                requirements.append(Requirement(feature, mini, maxi))
-        paths.append(TreePath(None, is_bug, requirements))
-
-    return paths
-
-
 class Requirement:
     def __init__(self, feature: Feature, mini, maxi):
         self.__feature: Feature = feature
@@ -36,16 +17,6 @@ class Requirement:
 
     def feature(self) -> Feature:
         return self.__feature
-
-    def select(self, data):
-        """Returns a vector of booleans, suitable for selecting in a pandas data frame."""
-        if self.__mini is None:
-            return data[self.__feature.name()] <= self.__maxi
-        if self.__maxi is None:
-            return self.__mini <= data[self.__feature.name()]
-        return (self.__mini <= data[self.__feature.name()]) & (
-            data[self.__feature.name()] <= self.__maxi
-        )
 
     def mini(self):
         return self.__mini
@@ -130,12 +101,9 @@ class TreePath:
     def get(self, idx):
         return self.__requirements[idx]
 
-    def find_sample(self, data):
-        for req in self.__requirements:
-            data = data[req.select(data)]
-        if 0 != len(data):
-            return data["abs_file"][0]
-        return None
+    @property
+    def requirements(self) -> List[Requirement]:
+        return self.__requirements
 
     def __len__(self) -> int:
         return len(self.__requirements)
@@ -159,3 +127,22 @@ def min_digits(mini):
 
 def max_digits(maxi):
     return int("".join([9] * int(maxi)))
+
+
+def tree_to_paths(tree, features: List[Feature | str], classes=None) -> List[TreePath]:
+    logging.info("Extracting requirements from tree ...")
+    paths = []
+    # go through tree leaf by leaf
+    for path in treetools.all_path(tree):
+        requirements = []
+        is_bug = OracleResult.BUG == treetools.prediction_for_path(tree, path, classes)
+        # find the requirements
+        box = treetools.box(tree, path, feature_names=features).transpose()
+        for feature, row in box.iterrows():
+            mini = row["min"]
+            maxi = row["max"]
+            if (not np.isinf(mini)) or (not np.isinf(maxi)):
+                requirements.append(Requirement(feature, mini, maxi))
+        paths.append(TreePath(None, is_bug, requirements))
+
+    return paths

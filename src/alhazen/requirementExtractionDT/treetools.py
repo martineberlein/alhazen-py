@@ -35,7 +35,7 @@ def generic_feature_names(clf):
 
 
 def box(clf, path, data=None, feature_names=None):
-    """For a decision tree classifier clf and a path path (as returned, e.g. by all_path),
+    """For a decision tree classifier clf and a path (as returned, e.g. by all_path),
     this method gives a pandas DataFrame with the min and max of each feature value on the given path.
     """
 
@@ -107,10 +107,15 @@ def rectangles(clf, colormap, data, feature_names=None):
         yield rect
 
 
-def prediction_for_path(clf, path) -> OracleResult:
+def prediction_for_path(clf, path, classes=None) -> OracleResult:
+    if classes is None:
+        classes = ["BUG", "NO_BUG"]
     last_value = clf.tree_.value[path[-1]][0]
     p_class = numpy.argmax(last_value)
-    return OracleResult(clf.classes_[p_class])
+    cls = clf.classes_[p_class]
+    if isinstance(cls, float):
+        cls = classes[p_class]
+    return OracleResult(cls)
 
 
 def rule(clf, path, feature_names, class_names=None):

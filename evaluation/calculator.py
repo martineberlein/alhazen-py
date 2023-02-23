@@ -19,7 +19,8 @@ from alhazen.input import Input
 from alhazen.feature_collector import Collector
 from alhazen.features import EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE
 
-MAX_ITERATION = 30
+MAX_ITERATION = 50
+FEATURES = {EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE}
 
 
 if __name__ == '__main__':
@@ -32,11 +33,12 @@ if __name__ == '__main__':
         grammar=grammar,
         evaluation_function=prop,
         max_iter=MAX_ITERATION,
+        features=FEATURES
         # generator=AdvancedGenerator(grammar)
     )
     trees = alhazen.run()
 
-    collector = Collector(grammar=grammar, features={EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE})
+    collector = Collector(grammar=grammar, features=FEATURES)
     all_features = collector.get_all_features()
 
     show_tree(trees[MAX_ITERATION-1], all_features)
