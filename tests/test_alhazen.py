@@ -31,7 +31,7 @@ class TestAlhazen(unittest.TestCase):
             initial_inputs=initial_inputs,
             grammar=grammar,
             evaluation_function=prop,
-            learner=RandomForestLearner()
+            learner=RandomForestLearner(),
         )
         result = alhazen.run()
 
