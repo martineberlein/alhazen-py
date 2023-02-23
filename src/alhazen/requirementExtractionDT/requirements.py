@@ -129,13 +129,13 @@ def max_digits(maxi):
     return int("".join([9] * int(maxi)))
 
 
-def tree_to_paths(tree, features: List[Feature | str]) -> List[TreePath]:
+def tree_to_paths(tree, features: List[Feature | str], classes=None) -> List[TreePath]:
     logging.info("Extracting requirements from tree ...")
     paths = []
     # go through tree leaf by leaf
     for path in treetools.all_path(tree):
         requirements = []
-        is_bug = OracleResult.BUG == treetools.prediction_for_path(tree, path)
+        is_bug = OracleResult.BUG == treetools.prediction_for_path(tree, path, classes)
         # find the requirements
         box = treetools.box(tree, path, feature_names=features).transpose()
         for feature, row in box.iterrows():

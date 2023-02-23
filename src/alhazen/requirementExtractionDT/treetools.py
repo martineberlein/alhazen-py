@@ -107,10 +107,15 @@ def rectangles(clf, colormap, data, feature_names=None):
         yield rect
 
 
-def prediction_for_path(clf, path) -> OracleResult:
+def prediction_for_path(clf, path, classes=None) -> OracleResult:
+    if classes is None:
+        classes = ['BUG', 'NO_BUG']
     last_value = clf.tree_.value[path[-1]][0]
     p_class = numpy.argmax(last_value)
-    return OracleResult(clf.classes_[p_class])
+    cls = clf.classes_[p_class]
+    if isinstance(cls, float):
+        cls = classes[p_class]
+    return OracleResult(cls)
 
 
 def rule(clf, path, feature_names, class_names=None):

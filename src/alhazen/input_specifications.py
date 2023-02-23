@@ -9,7 +9,7 @@ from alhazen.features import Feature
 from alhazen.requirementExtractionDT.requirements import tree_to_paths
 
 
-def extracting_prediction_paths(clf, feature_names, data):
+def extracting_prediction_paths(clf, feature_names, data, classes=None):
     # determine the bounds
     bounds = (
         pandas.DataFrame(
@@ -25,7 +25,9 @@ def extracting_prediction_paths(clf, feature_names, data):
 
     # go through tree leaf by leaf
     all_reqs = set()
-    for path in tree_to_paths(clf, feature_names):
+    for path in tree_to_paths(clf, feature_names, classes):
+        if len(path) < 1:
+            continue
         # generate conditions
         for i in range(0, len(path) + 1):
             reqs_list = []
