@@ -1,6 +1,5 @@
-from typing import Generator, Optional
+from typing import Generator, Optional, Dict
 
-from pandas import DataFrame
 from isla.derivation_tree import DerivationTree
 
 from alhazen.oracle import OracleResult
@@ -15,7 +14,7 @@ class Input:
         assert isinstance(tree, DerivationTree)
         self.__tree: DerivationTree = tree
         self.__oracle: Optional[OracleResult] = None
-        self.__features: Optional[DataFrame] = None
+        self.__features: Optional[Dict] = None
 
     @property
     def tree(self) -> DerivationTree:
@@ -26,7 +25,7 @@ class Input:
         return self.__oracle
 
     @property
-    def features(self) -> DataFrame:
+    def features(self) -> Dict:
         return self.__features
 
     @oracle.setter
@@ -34,7 +33,7 @@ class Input:
         self.__oracle = oracle_
 
     @features.setter
-    def features(self, features_: DataFrame):
+    def features(self, features_: Dict):
         self.__features = features_
 
     def __str__(self) -> str:

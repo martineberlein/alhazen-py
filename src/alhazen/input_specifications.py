@@ -2,7 +2,7 @@ import string
 import pandas
 from typing import List
 
-from fuzzingbook.Parser import EarleyParser, tree_to_string
+from fuzzingbook.Parser import tree_to_string
 from fuzzingbook.Grammars import Grammar
 
 from alhazen.features import Feature
@@ -63,7 +63,7 @@ SPECIFICATION_GRAMMAR: Grammar = {
         "num(<string>)",
         # currently not used
         "char(<string>)",
-        "length(<string>)",
+        "len(<string>)",
     ],
     "<quant>": ["<", ">", "<=", ">="],
     "<num>": ["-<value>", "<value>"],
