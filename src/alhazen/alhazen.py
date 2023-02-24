@@ -6,7 +6,6 @@ from pandas import DataFrame, concat
 
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
 from fuzzingbook.Parser import EarleyParser
-from sklearn.tree import DecisionTreeClassifier
 from isla.derivation_tree import DerivationTree
 
 from alhazen.input import Input
@@ -142,25 +141,3 @@ class Alhazen:
             inputs.add(self._generator.generate(input_specification=specification))
 
         return inputs
-
-    def _execute_input_files(self, inputs: Set[Input]) -> DataFrame:
-        logging.info("Executing input files")
-
-        exec_oracle = []
-        for inp in inputs:
-            try:
-                result = self._prop(inp.tree)  # TODO What about UNDEF?
-                exec_oracle.append(
-                    {
-                        # "sample_id": id.hex,
-                        # "sample": sample,
-                        # "subject": SUBJECT,
-                        "oracle": result
-                    }
-                )
-            except SyntaxError:
-                logging.info(
-                    f"Input {str(inp)} is not a valid input of the program. You might want to rewrite your grammar!"
-                )
-
-        return DataFrame.from_records(exec_oracle)

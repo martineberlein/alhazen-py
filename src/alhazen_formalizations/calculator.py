@@ -2,7 +2,6 @@ import math
 import logging
 
 from fuzzingbook.Grammars import Grammar
-# from fuzzingbook.Parser import DerivationTree
 from isla.derivation_tree import DerivationTree
 
 from alhazen.oracle import OracleResult
