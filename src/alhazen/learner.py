@@ -36,6 +36,14 @@ class Learner(ABC):
     ) -> List[InputSpecification]:
         raise NotImplementedError
 
+    @abstractmethod
+    def visualize(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def predict(self):
+        raise NotImplementedError
+
 
 class DecisionTreeLearner(Learner):
     def __init__(
@@ -107,6 +115,12 @@ class DecisionTreeLearner(Learner):
 
         return input_specifications
 
+    def predict(self):
+        raise NotImplementedError
+
+    def visualize(self):
+        raise NotImplementedError
+
 
 class RandomForestLearner(Learner):
     def __init__(self):
@@ -171,3 +185,30 @@ class RandomForestLearner(Learner):
                 pass
 
         return input_specifications
+
+    def predict(self):
+        raise NotImplementedError
+
+    def visualize(self):
+        raise NotImplementedError
+
+
+class XGBTLearner(Learner):
+    def train(self, data: DataFrame, **kwargs):
+        pass
+
+    def get_input_specifications(
+        self,
+        model,
+        all_features: List[Feature],
+        feature_names: List[str],
+        data: DataFrame,
+        **kwargs
+    ) -> List[InputSpecification]:
+        pass
+
+    def visualize(self):
+        pass
+
+    def predict(self):
+        pass

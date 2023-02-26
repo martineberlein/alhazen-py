@@ -13,6 +13,7 @@ from alhazen.oracle import OracleResult
 from alhazen.input import Input
 from alhazen.feature_collector import Collector
 from alhazen.features import FeatureWrapper, STANDARD_FEATURES
+from alhazen.requirementExtractionDT.treetools import grouped_rules
 
 
 class Evaluator:
@@ -54,7 +55,8 @@ class Evaluator:
     def evaluate_experiments(
         self, experiment_results: List[Dict], evaluation_data_set: DataFrame
     ):
-        evaluation_data_set = evaluation_data_set.fillna(0)
+        p = evaluation_data_set
+        evaluation_data_set = evaluation_data_set.fillna(0).drop(['input'], axis=1)
         eval_iteration = self.repetitions - 1
         for experiment in experiment_results:
             model = experiment["models"][eval_iteration]
@@ -65,9 +67,6 @@ class Evaluator:
                 evaluation_data_set["oracle"].astype(str), predictions, normalize=True
             )
             accuracy = round(accuracy * 100, 3)
-            print(
-                f"The decision tree at iteration {str(eval_iteration)} achieved an accuracy of {accuracy} %"
-            )
 
             precision = precision_score(
                 evaluation_data_set["oracle"].astype(str),
@@ -76,6 +75,7 @@ class Evaluator:
                 average="binary",
             )
             precision = round(precision * 100, 3)
+
             recall = recall_score(
                 evaluation_data_set["oracle"].astype(str),
                 predictions,
@@ -84,27 +84,27 @@ class Evaluator:
             )
             recall = round(recall * 100, 3)
 
-            print(
-                f"The decision tree at iteration {str(eval_iteration)} achieved a precision of {precision} %"
-            )
-            print(
-                f"The decision tree at iteration {str(eval_iteration)} achieved a recall of {recall} %"
-            )
-
             f1 = f1_score(
                 evaluation_data_set["oracle"].astype(str),
                 predictions,
                 pos_label="BUG",
                 average="binary",
             )
-            print(
-                f"The decision tree at iteration {str(eval_iteration)} achieved a f1-score of {round(f1, 3)}"
-            )
 
             experiment["accuracy"] = accuracy
             experiment["precision"] = precision
             experiment["recall"] = recall
             experiment["f1-score"] = f1
+
+            collector: Collector = Collector(self.grammar, self.features)
+            all_features = collector.get_all_features()
+            feature_names = [f.name for f in all_features]
+
+            # print(grouped_rules(model, feature_names=feature_names))
+
+            for prediction, oracle, inp in zip(predictions, evaluation_data_set["oracle"].astype(str), p['input']):
+                if prediction != oracle:
+                    print(prediction, oracle, inp)
 
         return experiment_results
 
@@ -149,6 +149,7 @@ class Evaluator:
             if test_input.oracle != OracleResult.UNDEF:
                 test_input.features = collector.collect_features(test_input)
                 learning_data = test_input.features
+                learning_data['input'] = str(test_input)
                 learning_data["oracle"] = test_input.oracle
                 evaluation_data.append(learning_data)
 

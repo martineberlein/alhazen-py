@@ -39,7 +39,7 @@ if __name__ == "__main__":
     evaluator = Evaluator(
         "Calculator",
         timeout=60 * 60,
-        repetitions=10,
+        repetitions=20,
         tools=[alhazen_decision_tree, alhazen_random_forest],
         job_names=["Alhazen", "Alhazen RandomForest"],
         grammar=grammar,
