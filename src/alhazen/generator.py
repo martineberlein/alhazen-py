@@ -14,6 +14,7 @@ from alhazen.features import (
     Feature,
     ExistenceFeature,
     NumericInterpretation,
+    LengthFeature,
     extract_numeric,
     extract_existence,
 )
@@ -274,5 +275,44 @@ class AdvancedGenerator(Generator):
 
 
 class ISLAGenerator(Generator):
-    def generate(self, **kwargs) -> DerivationTree:
+
+    def __init__(self, grammar: Grammar):
+        super().__init__(grammar)
+
+    @staticmethod
+    def transform_constraints(input_specification: InputSpecification):
+        constraints = []
+        for idx, requirement in enumerate(input_specification.requirements):
+            """
+            We use the extended syntax of ISLA
+            - 1D: 
+                    - exists(<digit>)                       ???
+                    - num(<number>) </>/<=/>= xyz           str.to.int(<number>) < 12
+                    - len(<function>) </>/<=/>= xyz         str.len(<function>) > 3.5
+            - 2D: 
+                1. f.key is terminal:
+                    - exists(<function> == sqrt)            <function> = "sqrt"
+                    - exists(<maybe_minus>) == )            <maybe_minus> = ""
+                2. f.key is nonterminal:
+                    - exists(<function> == .<digit>)        ???
+            """
+            feature = requirement.feature
+            constraint = ""
+            if feature.rule == feature.key:
+                # 1D Case
+                if isinstance(feature, NumericInterpretation):
+                    constraint = f"str.to.int({feature.rule}) {requirement.quant} {requirement.value}"
+                if isinstance(feature, LengthFeature):
+                    constraint = f"str.len({feature.rule}) {requirement.quant} {requirement.value}"
+            else:
+                if isinstance(feature, ExistenceFeature):
+                    constraint = f'''{feature.rule} = "{feature.key}"'''
+
+            constraints.append(constraint)
+
+        p = " and ".join(constraints)
+
+        return p
+
+    def generate(self, input_specification: InputSpecification, **kwargs) -> Input:
         raise NotImplementedError
