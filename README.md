@@ -96,6 +96,14 @@ For our calculator, the learned decision tree looks something like this:
 
 We see that the failure occurs whenever we use the _sqrt(x)_ function and the number x has a negative sign!
 
+## Project Structure
+
+In this repository, you find:
+
+- the _reimplementation_ and [source code](./src/alhazen) of **Alhazen-py**, and
+- a complete introduction ([jupyter-notebook](./notebooks/guide)) on how to use **Alhazen-py** and how you can add your own _Learners_ and _Generators_.
+
+
 ## Install, Development, Testing, Build
 
 ### Install
