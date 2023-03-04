@@ -33,7 +33,7 @@ class Alhazen:
     ):
         self._initial_inputs: List[str] = initial_inputs
         self._grammar: grammar = grammar
-        self._prop: Callable[[DerivationTree], bool] = evaluation_function
+        self._prop: Callable[[Input], OracleResult] = evaluation_function
         self._max_iter: int = max_iter
         self._previous_samples: Set[Input] = set()
         self._data = None
