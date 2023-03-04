@@ -156,3 +156,8 @@ python3 -m build
 ```
 
 Then, you will find the built wheel (*.whl) in the dist/ directory.
+
+## Contributors
+
+The initial idea for writing the guide was to explain to our students at Humboldt-Universität Zu Berlin how to use _Alhazen_ to determine the failure circumstances of a program.
+The original notebooks were a joint project with my colleague [Hoang Lam Nguyen](https://www.informatik.hu-berlin.de/en/Members/hoang-lam-nguyen) from Humboldt-Universität Zu Berlin.
