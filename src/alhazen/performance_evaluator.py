@@ -16,6 +16,20 @@ from alhazen.features import FeatureWrapper, STANDARD_FEATURES
 from alhazen.requirementExtractionDT.treetools import grouped_rules
 
 
+class EvaluationDataSet:
+
+    def __init__(self, test_inputs: Set[Input]):
+        self.test_data: Set[Input] = test_inputs
+
+    def __len__(self):
+        return len(self.test_data)
+
+    @property
+    def bug_samples(self):
+        bug_samples = set([inp for inp in self.test_data if inp.oracle == OracleResult.BUG])
+        return bug_samples
+
+
 class Evaluator:
     """
     The evaluation class that runs and executes all experiments. Main method: run().
