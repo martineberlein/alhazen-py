@@ -14,6 +14,7 @@ from alhazen.generator import SimpleGenerator, Generator
 from alhazen.oracle import OracleResult
 from alhazen.features import FeatureWrapper, STANDARD_FEATURES
 from alhazen.feature_collector import Collector
+from alhazen.helper import show_tree
 
 GENERATOR_TIMEOUT = 10  # timeout in seconds
 MAX_ITERATION = 20
@@ -141,3 +142,6 @@ class Alhazen:
             inputs.add(self._generator.generate(input_specification=specification))
 
         return inputs
+
+    def show_model(self):
+        return show_tree(self._models[-1], self._all_features)
