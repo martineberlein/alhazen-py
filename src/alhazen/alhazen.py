@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import logging
 import sys
 from typing import List, Callable, Set, Union
