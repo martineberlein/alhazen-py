@@ -138,9 +138,34 @@ class Alhazen:
     def _generate_inputs(self, input_specifications) -> Set[Input]:
         inputs = set()
         for specification in input_specifications:
-            inputs.add(self._generator.generate(input_specification=specification))
+            inp = self._generator.generate(input_specification=specification)
+            if inp is not None:
+                inputs.add(inp)
 
         return inputs
 
+    def _get_last_model(self):
+        return self._models[-1]
+
     def show_model(self):
         return show_tree(self._models[-1], self._all_features)
+
+    def predict(self) -> OracleResult:
+        raise NotImplementedError("predict function not yet implemented")
+
+    def generate(
+        self, bug_triggering: bool = True, generator: Generator = None
+    ) -> Input:
+        if generator is None:
+            generator = self._generator
+
+        inp = self._learner.generate(
+            self._get_last_model(),
+            self._all_features,
+            self._feature_names,
+            self._data.drop(["oracle"], axis=1),
+            generator=generator,
+            bug_triggering=bug_triggering,
+        )
+
+        return inp
