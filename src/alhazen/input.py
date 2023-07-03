@@ -43,7 +43,7 @@ class Input:
         return hash(self.__tree.structural_hash())
 
     def __eq__(self, other):
-        if not isinstance(other, DerivationTree):
+        if not isinstance(other, Input):
             return False
         return self.__hash__() == other.__hash__()
 
