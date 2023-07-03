@@ -28,7 +28,7 @@ To help us determine faulty behavior, i.e., a crash, we implement an evaluation 
 ```python 
 from alhazen.oracle import OracleResult
 
-def prop(inp: str) -> bool:
+def prop(inp: str) -> OracleResult:
     try:
         arith_eval(inp)
         return OracleResult.NO_BUG
