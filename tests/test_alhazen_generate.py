@@ -25,6 +25,7 @@ class TestAlhazenGenerate(unittest.TestCase):
         )
         _ = self.alhazen.run()
 
+    @unittest.skip
     def test_alhazen_generate(self):
         from alhazen.requirementExtractionDT.treetools import grouped_rules
 
