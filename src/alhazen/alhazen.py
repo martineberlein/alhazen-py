@@ -14,6 +14,8 @@ from alhazen.oracle import OracleResult
 from alhazen.features import FeatureWrapper, STANDARD_FEATURES
 from alhazen.feature_collector import Collector
 from alhazen.helper import show_tree
+from alhazen.helper import get_clf_text
+from alhazen.helper import get_dot_data
 
 GENERATOR_TIMEOUT = 10  # timeout in seconds
 MAX_ITERATION = 20
@@ -21,15 +23,15 @@ MAX_ITERATION = 20
 
 class Alhazen:
     def __init__(
-        self,
-        initial_inputs: List[str],
-        grammar: Grammar,
-        evaluation_function: Callable,
-        max_iter: int = 10,
-        generator_timeout: int = 10,
-        generator: Union[Generator | None] = None,
-        learner: Union[Learner | None] = None,
-        features: Set[FeatureWrapper] = STANDARD_FEATURES,
+            self,
+            initial_inputs: List[str],
+            grammar: Grammar,
+            evaluation_function: Callable,
+            max_iter: int = 10,
+            generator_timeout: int = 10,
+            generator: Union[Generator | None] = None,
+            learner: Union[Learner | None] = None,
+            features: Set[FeatureWrapper] = STANDARD_FEATURES,
     ):
         self._initial_inputs: List[str] = initial_inputs
         self._grammar: grammar = grammar
@@ -149,6 +151,12 @@ class Alhazen:
 
     def show_model(self):
         return show_tree(self._models[-1], self._all_features)
+
+    def get_clf_model(self):
+        return get_clf_text(self._models[-1], self._all_features)
+
+    def get_dot_model(self):
+        return get_dot_data(self._models[-1], self._all_features)
 
     def predict(self) -> OracleResult:
         raise NotImplementedError("predict function not yet implemented")

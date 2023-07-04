@@ -16,6 +16,13 @@ def show_tree(clf, feature_names):
     return graphviz.Source(dot_data)
 
 
+def get_clf_text(clf, feature_names):
+    clf_text = tree.export_text(
+        decision_tree=clf,
+        feature_names=feature_names)
+    return clf_text
+
+
 def get_dot_data(clf, feature_names):
     dot_data = tree.export_graphviz(
         clf,
