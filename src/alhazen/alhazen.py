@@ -14,6 +14,8 @@ from alhazen.oracle import OracleResult
 from alhazen.features import FeatureWrapper, STANDARD_FEATURES
 from alhazen.feature_collector import Collector
 from alhazen.helper import show_tree
+from alhazen.helper import get_clf_text
+from alhazen.helper import get_dot_data
 
 GENERATOR_TIMEOUT = 10  # timeout in seconds
 MAX_ITERATION = 20
@@ -21,15 +23,15 @@ MAX_ITERATION = 20
 
 class Alhazen:
     def __init__(
-        self,
-        initial_inputs: List[str],
-        grammar: Grammar,
-        evaluation_function: Callable,
-        max_iter: int = 10,
-        generator_timeout: int = 10,
-        generator: Union[Generator | None] = None,
-        learner: Union[Learner | None] = None,
-        features: Set[FeatureWrapper] = STANDARD_FEATURES,
+            self,
+            initial_inputs: List[str],
+            grammar: Grammar,
+            evaluation_function: Callable,
+            max_iter: int = 10,
+            generator_timeout: int = 10,
+            generator: Union[Generator | None] = None,
+            learner: Union[Learner | None] = None,
+            features: Set[FeatureWrapper] = STANDARD_FEATURES,
     ):
         self._initial_inputs: List[str] = initial_inputs
         self._grammar: grammar = grammar
@@ -138,9 +140,40 @@ class Alhazen:
     def _generate_inputs(self, input_specifications) -> Set[Input]:
         inputs = set()
         for specification in input_specifications:
-            inputs.add(self._generator.generate(input_specification=specification))
+            inp = self._generator.generate(input_specification=specification)
+            if inp is not None:
+                inputs.add(inp)
 
         return inputs
 
+    def _get_last_model(self):
+        return self._models[-1]
+
     def show_model(self):
         return show_tree(self._models[-1], self._all_features)
+
+    def get_clf_model(self):
+        return get_clf_text(self._models[-1], self._all_features)
+
+    def get_dot_model(self):
+        return get_dot_data(self._models[-1], self._all_features)
+
+    def predict(self) -> OracleResult:
+        raise NotImplementedError("predict function not yet implemented")
+
+    def generate(
+        self, bug_triggering: bool = True, generator: Generator = None
+    ) -> Input:
+        if generator is None:
+            generator = self._generator
+
+        inp = self._learner.generate(
+            self._get_last_model(),
+            self._all_features,
+            self._feature_names,
+            self._data.drop(["oracle"], axis=1),
+            generator=generator,
+            bug_triggering=bug_triggering,
+        )
+
+        return inp

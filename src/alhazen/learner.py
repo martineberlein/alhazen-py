@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 from typing import List
 from abc import ABC, abstractmethod
 
@@ -15,6 +14,8 @@ from alhazen.input_specifications import (
     extracting_prediction_paths,
     create_new_input_specification,
 )
+from alhazen.input import Input
+from alhazen.generator import Generator
 
 
 class Learner(ABC):
@@ -41,7 +42,20 @@ class Learner(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def predict(self):
+    def predict(self) -> OracleResult:
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate(
+        self,
+        decision_tree,
+        all_features: List[Feature],
+        feature_names: List[str],
+        data: DataFrame,
+        generator: Generator,
+        bug_triggering: bool = True,
+        **kwargs
+    ) -> Input:
         raise NotImplementedError
 
 
@@ -118,6 +132,46 @@ class DecisionTreeLearner(Learner):
     def predict(self):
         raise NotImplementedError
 
+    def generate(
+        self,
+        decision_tree,
+        all_features: List[Feature],
+        feature_names: List[str],
+        data: DataFrame,
+        generator: Generator,
+        bug_triggering: bool = True,
+    ) -> Input:
+        from alhazen.requirementExtractionDT.requirements import tree_to_paths
+
+        all_paths = tree_to_paths(decision_tree, feature_names)
+
+        relevant_paths = set()
+        for path in all_paths:
+            if path.is_bug() == bug_triggering:
+                reqs = []
+                for i in range(len(path)):
+                    reqs.append(path.get(i).get_str_ext())
+                relevant_paths.add(", ".join(sorted(reqs)))
+
+        input_specifications = []
+        for r in relevant_paths:
+            parser = EarleyParser(SPECIFICATION_GRAMMAR)
+            try:
+                for tree in parser.parse(r):
+                    input_specifications.append(
+                        create_new_input_specification(tree, all_features)
+                    )
+            except SyntaxError as e:
+                # Catch Parsing Syntax Errors: num(<term>) in [-900, 0] will fail; Might fix later
+                # For now, inputs following that form will be ignored
+                print(e)
+                pass
+
+        from random import choice
+
+        random_spec = choice(input_specifications)
+        return generator.generate(input_specification=random_spec)
+
     def visualize(self):
         raise NotImplementedError
 
@@ -187,6 +241,9 @@ class RandomForestLearner(Learner):
         return input_specifications
 
     def predict(self):
+        raise NotImplementedError
+
+    def generate(self):
         raise NotImplementedError
 
     def visualize(self):

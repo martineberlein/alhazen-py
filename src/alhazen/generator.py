@@ -3,6 +3,7 @@ import copy
 import random
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Dict
+from timer import timer
 
 from fuzzingbook.Parser import EarleyParser
 from fuzzingbook.GrammarFuzzer import (
@@ -265,17 +266,16 @@ class AdvancedGenerator(Generator):
         if not input_specification:
             return generator.generate()
 
-        sample_inputs: List[Input] = [generator.generate() for _ in range(100)]
-        queue = []
-        for inp in sample_inputs:
-            validated, unfulfilled = self.validate(inp, input_specification)
-            if validated:
-                return inp
-            queue.append((inp, unfulfilled))
+        with timer() as t:
+            while t.elapse < 2:
+                sample_inputs: List[Input] = [generator.generate() for _ in range(100)]
+                for inp in sample_inputs:
+                    validated, unfulfilled = self.validate(inp, input_specification)
+                    if validated:
+                        return inp
 
 
 class ISLAGenerator(Generator):
-
     def __init__(self, grammar: Grammar):
         super().__init__(grammar)
 
@@ -285,11 +285,11 @@ class ISLAGenerator(Generator):
         for idx, requirement in enumerate(input_specification.requirements):
             """
             We use the extended syntax of ISLA
-            - 1D: 
+            - 1D:
                     - exists(<digit>)                       ???
                     - num(<number>) </>/<=/>= xyz           str.to.int(<number>) < 12
                     - len(<function>) </>/<=/>= xyz         str.len(<function>) > 3.5
-            - 2D: 
+            - 2D:
                 1. f.key is terminal:
                     - exists(<function> == sqrt)            <function> = "sqrt"
                     - exists(<maybe_minus>) == )            <maybe_minus> = ""

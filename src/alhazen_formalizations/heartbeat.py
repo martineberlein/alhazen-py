@@ -41,7 +41,5 @@ if __name__ == "__main__":
         for tree in p.parse(inp):
             assert len(tree) != 0
             assert tree_to_string(tree) == inp
-            test_input = Input(
-                DerivationTree.from_parse_tree(tree)
-            )
+            test_input = Input(DerivationTree.from_parse_tree(tree))
             print(prop(test_input))

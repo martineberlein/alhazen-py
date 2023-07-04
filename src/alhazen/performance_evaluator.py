@@ -17,7 +17,6 @@ from alhazen.requirementExtractionDT.treetools import grouped_rules
 
 
 class EvaluationDataSet:
-
     def __init__(self, test_inputs: Set[Input]):
         self.test_data: Set[Input] = test_inputs
 
@@ -26,7 +25,9 @@ class EvaluationDataSet:
 
     @property
     def bug_samples(self):
-        bug_samples = set([inp for inp in self.test_data if inp.oracle == OracleResult.BUG])
+        bug_samples = set(
+            [inp for inp in self.test_data if inp.oracle == OracleResult.BUG]
+        )
         return bug_samples
 
 
@@ -70,7 +71,7 @@ class Evaluator:
         self, experiment_results: List[Dict], evaluation_data_set: DataFrame
     ):
         p = evaluation_data_set
-        evaluation_data_set = evaluation_data_set.fillna(0).drop(['input'], axis=1)
+        evaluation_data_set = evaluation_data_set.fillna(0).drop(["input"], axis=1)
         eval_iteration = self.repetitions - 1
         for experiment in experiment_results:
             model = experiment["models"][eval_iteration]
@@ -116,7 +117,9 @@ class Evaluator:
 
             # print(grouped_rules(model, feature_names=feature_names))
 
-            for prediction, oracle, inp in zip(predictions, evaluation_data_set["oracle"].astype(str), p['input']):
+            for prediction, oracle, inp in zip(
+                predictions, evaluation_data_set["oracle"].astype(str), p["input"]
+            ):
                 if prediction != oracle:
                     print(prediction, oracle, inp)
 
@@ -163,7 +166,7 @@ class Evaluator:
             if test_input.oracle != OracleResult.UNDEF:
                 test_input.features = collector.collect_features(test_input)
                 learning_data = test_input.features
-                learning_data['input'] = str(test_input)
+                learning_data["input"] = str(test_input)
                 learning_data["oracle"] = test_input.oracle
                 evaluation_data.append(learning_data)
 

@@ -28,7 +28,7 @@ To help us determine faulty behavior, i.e., a crash, we implement an evaluation 
 ```python 
 from alhazen.oracle import OracleResult
 
-def prop(inp: str) -> bool:
+def prop(inp: str) -> OracleResult:
     try:
         arith_eval(inp)
         return OracleResult.NO_BUG
@@ -96,6 +96,55 @@ For our calculator, the learned decision tree looks something like this:
 
 We see that the failure occurs whenever we use the _sqrt(x)_ function and the number x has a negative sign!
 
+## Using Alhazen from the command line (CLI)
+
+Alhazen-py offers a minimal CLI tool. It expects a python-file where the needed data and code is supplied (e.g. as in `src/alhazen_formalizations/calculator.py`).
+
+```shell
+alhazen [...] your_program.py
+
+# how to use the calculator example
+alhazen src/alhazen_formalizations/calculator.py -e=prop -g=grammar -i=initial_inputs
+
+# if you use the default names, you can omit them from the command
+alhazen src/alhazen_formalizations/calculator.py -e=prop
+```
+
+Currently, the following Alhazen attributes are supported as parameters for the CLI:
+
+<ul>
+<li>initials_inputs</li>
+<li>grammar</li>
+<li>evaluation_function</li>
+</ul>
+
+### Specifying your output and getting help
+
+By default, the CLI will print out result to stdout, with you being able to specify the output format:
+
+```shell
+# use the sklearn.tree.export_text() text representation
+alhazen your_program.py -F=0
+
+# use the sklearn.tree.export_graphviz() dot model representation
+alhazen your_program.py --format=1
+```
+
+For further visualization you can for example pipe the output to `dot` and get an SVG (prerequisite: `graphviz`):
+```shell
+# create a svg of the tree by piping alhazens output to dot
+alhazen src/alhazen_formalizations/calculator.py -e=prop | dot -Tsvg > output.svg
+```
+
+Miscellaneous:
+```shell
+# If you need help, check the help page
+alhazen --help
+
+# You can increase output verbosity with -v or --verbosity
+alhazen -v ...
+```
+
 ## Project Structure
 
 In this repository, you find:
@@ -116,6 +165,9 @@ source venv/bin/activate
 
 pip install --upgrade pip
 pip install alhazen-py
+
+# check if alhazen was installed correctly
+alhazen --version
 ```
 
 Now, the alhazen command should be available on the command line within the virtual environment.
