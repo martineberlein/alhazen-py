@@ -37,7 +37,7 @@ class TestAlhazenGenerate(unittest.TestCase):
             test_inputs.append(self.alhazen.generate(bug_triggering=True, generator=generator))
 
         for inp in test_inputs:
-            self.assertEqual(prop(str(inp)), OracleResult.BUG)
+            self.assertEqual(prop(inp.tree), OracleResult.BUG)
 
 
 if __name__ == '__main__':
