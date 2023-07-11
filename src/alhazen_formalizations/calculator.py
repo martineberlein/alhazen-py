@@ -21,7 +21,7 @@ def prop_(inp: DerivationTree) -> bool:
         return True
 
 
-def prop(inp: DerivationTree):
+def prop(inp: DerivationTree) -> OracleResult:
     try:
         return OracleResult.BUG if prop_(inp) else OracleResult.NO_BUG
     except SyntaxError:

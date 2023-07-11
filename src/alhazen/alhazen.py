@@ -32,6 +32,7 @@ class Alhazen:
             generator: Union[Generator | None] = None,
             learner: Union[Learner | None] = None,
             features: Set[FeatureWrapper] = STANDARD_FEATURES,
+            allow_negatives: bool = False  # EXPERIMENTAL: allow negative integers, by transforming the input range
     ):
         self._initial_inputs: List[str] = initial_inputs
         self._grammar: grammar = grammar
@@ -42,6 +43,7 @@ class Alhazen:
         self._models: List = []
         self._generator_timeout: int = generator_timeout
         self._syntactic_features: Set[FeatureWrapper] = features
+        self._allow_negatives = allow_negatives
 
         assert is_valid_grammar(self._grammar)
 
@@ -167,7 +169,7 @@ class Alhazen:
         if generator is None:
             generator = self._generator
 
-        inp = self._learner.generate(
+        input = self._learner.generate(
             self._get_last_model(),
             self._all_features,
             self._feature_names,
@@ -176,4 +178,4 @@ class Alhazen:
             bug_triggering=bug_triggering,
         )
 
-        return inp
+        return input

@@ -1,7 +1,5 @@
 import unittest
 
-from isla.solver import ISLaSolver
-
 from alhazen.input_specifications import Requirement, InputSpecification
 from alhazen.generator import (
     SimpleGenerator,
@@ -10,8 +8,10 @@ from alhazen.generator import (
     generate_samples_advanced,
     ISLAGenerator
 )
+from alhazen.isla_helper import input_specification_to_isla_constraint
 from alhazen_formalizations.calculator import grammar
 from alhazen.features import ExistenceFeature, NumericInterpretation
+from tests.test_helper import assertInputSpecification
 
 
 class TestGenerator(unittest.TestCase):
@@ -32,7 +32,9 @@ class TestGenerator(unittest.TestCase):
         )
         input_specification = InputSpecification([req_sqrt, req_term])
 
-        generator.generate(input_specification)
+        input = generator.generate(input_specification)
+
+        assertInputSpecification(grammar, input, input_specification)
 
     def test_advanced_generator_function_old(self):
         """
@@ -59,30 +61,46 @@ class TestGenerator(unittest.TestCase):
         req_term = Requirement(num_term, ">", "5.0")
 
         test_spec1 = InputSpecification([req_sqrt, req_term])
-        generator = ISLAGenerator(grammar=grammar)
-        constraint = generator.transform_constraints(test_spec1)
+        constraint = input_specification_to_isla_constraint(test_spec1)
         self.assertEqual('''<function> = "sqrt" and str.to.int(<term>) > 5.0''', constraint)
 
     def test_isla_generator(self):
-        from alhazen_formalizations.calculator import grammar_alhazen as grammar
-        formula = '''
-            str.to.int(<number>) < 12
-            and
-            <function> = "sqrt"
-            and
-            <maybe_frac> = ""
-            '''
-        #             forall <maybe_frac> c = ".<digits>" in start:
-        #                 inside(c, start)
+        isla_generator = ISLAGenerator(grammar)
 
-        #             inside(<maybe_frac>.<digits>, start)
-        #             and
-        solver = ISLaSolver(
-            grammar=grammar,
-            formula=formula
+        req_sqrt = Requirement(
+            ExistenceFeature("exists(<function>@0)", "<function>", "sqrt"), ">", "0.5"
         )
-        for _ in range(9):
-            print(solver.solve())
+        req_term_min = Requirement(
+            NumericInterpretation("num(<term>)", "<term>"), ">", "900.0"
+        )
+        req_term_max = Requirement(
+            NumericInterpretation("num(<term>)", "<term>"), "<", "1023"
+        )
+        input_specification = InputSpecification([req_sqrt, req_term_min, req_term_max])
+
+        input = isla_generator.generate(input_specification)
+
+        assertInputSpecification(grammar, input, input_specification)
+        print(input)
+
+    def test_isla_generator_with_negativs(self):
+        isla_generator = ISLAGenerator(grammar=grammar, allow_negatives=True)
+
+        req_sqrt = Requirement(
+            ExistenceFeature("exists(<function>@0)", "<function>", "sqrt"), ">", "0.5"
+        )
+        req_term_min = Requirement(
+            NumericInterpretation("num(<term>)", "<term>"), ">", "-900.0"
+        )
+        req_term_max = Requirement(
+            NumericInterpretation("num(<term>)", "<term>"), "<", "-890.0"
+        )
+        input_specification = InputSpecification([req_sqrt, req_term_min, req_term_max])
+
+        input = isla_generator.generate(input_specification)
+
+        assertInputSpecification(grammar, input, input_specification)
+        print(input)
 
 
 if __name__ == "__main__":
