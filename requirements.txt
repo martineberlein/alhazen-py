@@ -7,3 +7,4 @@ numpy~=1.23.5
 matplotlib~=3.6.3
 setuptools~=67.2.0
 isla-solver~=1.10.0
+timer>=0.2.2
