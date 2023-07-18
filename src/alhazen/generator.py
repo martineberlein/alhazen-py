@@ -1,3 +1,4 @@
+import re
 import time
 import copy
 import random
@@ -14,18 +15,19 @@ from fuzzingbook.Grammars import Grammar, is_valid_grammar
 from alhazen.features import (
     Feature,
     ExistenceFeature,
-    NumericInterpretation,
-    LengthFeature,
-    extract_numeric,
-    extract_existence,
+    NumericInterpretation
 )
 
 from alhazen.input_specifications import InputSpecification, Requirement
 from alhazen.feature_collector import Collector
 from alhazen.input import Input
+from alhazen.helper import revert_shift_to_negative, is_negative
 
-from fuzzingbook.GrammarFuzzer import GrammarFuzzer
+from isla.fuzzer import GrammarFuzzer
 from isla.derivation_tree import DerivationTree
+from isla.solver import ISLaSolver
+
+from alhazen.isla_helper import input_specification_to_isla_constraint
 
 
 def best_trees(forest, spec, grammar):
@@ -168,10 +170,12 @@ def generate_samples_random(grammar, num):
 
 
 class Generator(ABC):
-    def __init__(self, grammar, timeout: int = 10):
+    def __init__(self, grammar, timeout: int = 10,
+                 allow_negatives: bool = False):  # TODO wo packt man das sinnvoller weise überall hin?
         assert is_valid_grammar(grammar)
         self.grammar: Grammar = grammar
         self.timeout: int = timeout
+        self.allow_negatives: bool = allow_negatives
 
     @abstractmethod
     def generate(self, **kwargs) -> Input:
@@ -200,10 +204,10 @@ class AdvancedGenerator(Generator):
     """
 
     def __init__(
-        self,
-        grammar: Grammar,
-        grammar_features: List[Feature] = None,
-        timeout: int = 10,
+            self,
+            grammar: Grammar,
+            grammar_features: List[Feature] = None,
+            timeout: int = 10,
     ):
         super().__init__(grammar, timeout=timeout)
 
@@ -239,7 +243,7 @@ class AdvancedGenerator(Generator):
                     return actual_value >= expected
 
     def validate(
-        self, test_input: Input, specification: InputSpecification
+            self, test_input: Input, specification: InputSpecification
     ) -> Tuple[bool, int]:
         """
         Checks whether an input fulfills a given input specification. The result is the number of unfulfilled
@@ -276,43 +280,47 @@ class AdvancedGenerator(Generator):
 
 
 class ISLAGenerator(Generator):
-    def __init__(self, grammar: Grammar):
-        super().__init__(grammar)
-
-    @staticmethod
-    def transform_constraints(input_specification: InputSpecification):
-        constraints = []
-        for idx, requirement in enumerate(input_specification.requirements):
-            """
-            We use the extended syntax of ISLA
-            - 1D:
-                    - exists(<digit>)                       ???
-                    - num(<number>) </>/<=/>= xyz           str.to.int(<number>) < 12
-                    - len(<function>) </>/<=/>= xyz         str.len(<function>) > 3.5
-            - 2D:
-                1. f.key is terminal:
-                    - exists(<function> == sqrt)            <function> = "sqrt"
-                    - exists(<maybe_minus>) == )            <maybe_minus> = ""
-                2. f.key is nonterminal:
-                    - exists(<function> == .<digit>)        ???
-            """
-            feature = requirement.feature
-            constraint = ""
-            if feature.rule == feature.key:
-                # 1D Case
-                if isinstance(feature, NumericInterpretation):
-                    constraint = f"str.to.int({feature.rule}) {requirement.quant} {requirement.value}"
-                if isinstance(feature, LengthFeature):
-                    constraint = f"str.len({feature.rule}) {requirement.quant} {requirement.value}"
-            else:
-                if isinstance(feature, ExistenceFeature):
-                    constraint = f'''{feature.rule} = "{feature.key}"'''
-
-            constraints.append(constraint)
-
-        p = " and ".join(constraints)
-
-        return p
+    def __init__(self, grammar: Grammar, allow_negatives: bool = False):
+        super().__init__(grammar=grammar, allow_negatives=allow_negatives)
 
     def generate(self, input_specification: InputSpecification, **kwargs) -> Input:
-        raise NotImplementedError
+
+        if self.allow_negatives:
+            for requirement in input_specification.requirements:
+                if isinstance(requirement.feature, NumericInterpretation):
+                    from alhazen.helper import shift_from_negative
+                    requirement.value = shift_from_negative(int(float(requirement.value)))
+
+        isla_constraint = input_specification_to_isla_constraint(input_specification)
+
+        solver = ISLaSolver(
+            grammar=self.grammar,
+            formula=isla_constraint,
+            max_number_free_instantiations=1,
+            max_number_smt_instantiations=1,
+        )
+
+        tree = solver.solve()
+        tree_string = tree_to_string(tree)
+        pattern = re.compile(r"[-+]?\d+(?:\.\d+)?")
+        numbers = re.findall(pattern, tree_string)
+
+        for number in numbers:
+            if self.allow_negatives and is_negative(int(float(number))):
+                new_number = revert_shift_to_negative(int(float(number)))
+            else:
+                new_number = int(float(number))
+            tree_string = tree_string.replace(number, str(new_number), 1)
+
+        if self.allow_negatives:
+            for requirement in input_specification.requirements:
+                if isinstance(requirement.feature, NumericInterpretation):
+                    requirement.value = revert_shift_to_negative(int(float(requirement.value)))
+
+        # TODO local or global import
+        from isla.parser import EarleyParser
+        parser = EarleyParser(self.grammar)
+        trees = parser.parse(tree_string)
+        new_tree = DerivationTree.from_parse_tree(list(trees)[0])
+
+        return Input(tree=new_tree)

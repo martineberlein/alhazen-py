@@ -105,6 +105,13 @@ class TreePath:
     def requirements(self) -> List[Requirement]:
         return self.__requirements
 
+    def get_requirements_as_string(self, delimiter: str = ", ") -> str:
+        path = []
+        for requirement in self.__requirements:
+            path.append(requirement.get_str_ext())
+        path_string = delimiter.join(path)
+        return path_string
+
     def __len__(self) -> int:
         return len(self.__requirements)
 

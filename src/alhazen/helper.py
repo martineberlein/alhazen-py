@@ -4,6 +4,9 @@ from sklearn import tree
 from alhazen.requirementExtractionDT.treetools import remove_unequal_decisions
 
 
+NEGATIVE_SHIFT: int = 16  # where should we define this constant, maybe this can also be a class variable
+
+
 def show_tree(clf, feature_names):
     dot_data = tree.export_graphviz(
         remove_unequal_decisions(clf),
@@ -33,3 +36,23 @@ def get_dot_data(clf, feature_names):
         rounded=True,
     )
     return dot_data
+
+
+# problems will arise when using modulo
+# addition, subtraction, multiplication and division should work fine
+
+def shift_from_negative(number: int) -> int:
+    return number + (1 << NEGATIVE_SHIFT)
+
+
+def revert_shift_to_negative(number: int) -> int:
+    return number - (1 << NEGATIVE_SHIFT)
+
+
+def is_negative(number: int) -> int:
+    return True if number > NEGATIVE_SHIFT else False
+
+
+def is_zero(number: int) -> int:
+    return True if number == NEGATIVE_SHIFT else False
+

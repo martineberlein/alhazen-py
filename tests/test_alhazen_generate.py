@@ -1,8 +1,5 @@
 import unittest
 
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-
 from alhazen import Alhazen
 from alhazen.generator import AdvancedGenerator
 from alhazen.features import NUMERIC_INTERPRETATION_FEATURE, EXISTENCE_FEATURE
@@ -25,7 +22,6 @@ class TestAlhazenGenerate(unittest.TestCase):
         )
         _ = self.alhazen.run()
 
-    @unittest.skip
     def test_alhazen_generate(self):
         from alhazen.requirementExtractionDT.treetools import grouped_rules
 
@@ -38,7 +34,7 @@ class TestAlhazenGenerate(unittest.TestCase):
             test_inputs.append(self.alhazen.generate(bug_triggering=True, generator=generator))
 
         for inp in test_inputs:
-            self.assertEqual(prop(str(inp)), OracleResult.BUG)
+            self.assertEqual(prop(inp.tree), OracleResult.BUG)
 
 
 if __name__ == '__main__':
