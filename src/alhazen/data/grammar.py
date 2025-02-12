@@ -3,8 +3,9 @@ from fuzzingbook.Grammars import Grammar as FuzzingBookGrammar
 from fuzzingbook.Parser import EarleyParser
 from fuzzingbook.GrammarFuzzer import GrammarFuzzer
 
-from dbg.data.input import Input
 from dbg.data.grammar import AbstractGrammar
+
+from alhazen.data.input import AlhazenInput
 
 
 class Grammar(AbstractGrammar):
@@ -14,15 +15,14 @@ class Grammar(AbstractGrammar):
         self.parser = EarleyParser(self.grammar)
         self.fuzzer = GrammarFuzzer(self.grammar)
 
-    def parse(self, input_string: str) -> Input | None:
-        tree = self.parser.parse(input_string)
-        if tree:
-            return Input(tree)
+    def parse(self, input_string: str) -> AlhazenInput | None:
+        for tree in self.parser.parse(input_string):
+            return AlhazenInput(tree=tree)
         return None
 
-    def fuzz(self) -> Input:
+    def fuzz(self) -> AlhazenInput:
         tree = self.fuzzer.fuzz_tree()
-        return Input(tree)
+        return AlhazenInput(tree)
 
     def __str__(self):
         pass
@@ -32,3 +32,9 @@ class Grammar(AbstractGrammar):
 
     def get_rules(self):
         pass
+
+    def __iter__(self):
+        return iter(self.grammar)
+
+    def __getitem__(self, item):
+        return self.grammar[item]
