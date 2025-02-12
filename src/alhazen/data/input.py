@@ -10,12 +10,18 @@ class AlhazenInput(Input):
     def __init__(self, tree: DerivationTree, oracle: Optional[OracleResult] = None):
         super().__init__(tree, oracle)
         self.hash = hash(tree_to_string(tree))
+        self._features: Optional[dict] = None
+
+    @property
+    def features(self) -> dict:
+        return self._features
+
+    @features.setter
+    def features(self, features_: dict):
+        self._features = features_
 
     def traverse(self):
         pass
-
-    def __hash__(self) -> int:
-        return self.hash
 
     @classmethod
     def from_str(cls, grammar, input_string, oracle: Optional[OracleResult] = None):
@@ -23,6 +29,9 @@ class AlhazenInput(Input):
 
     def __repr__(self):
         return f"AlhazenInput('{tree_to_string(self.tree)}')"
+
+    def __hash__(self) -> int:
+        return self.hash
 
     def __str__(self):
         return tree_to_string(self.tree)
