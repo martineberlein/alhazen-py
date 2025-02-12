@@ -6,6 +6,8 @@ from alhazen.data.input import AlhazenInput, OracleResult
 from alhazen.data.grammar import Grammar
 from alhazen.data.feature_collector import Collector
 
+from alhazen.learner.learner import DecisionTreeLearner, show_tree
+
 from dbg.runner.runner import ExecutionHandler, SingleExecutionHandler
 
 
@@ -56,3 +58,7 @@ if __name__ == "__main__":
     runner.label(initial_inputs)
     for inp in initial_inputs:
         print(inp, inp.oracle)
+
+    learner = DecisionTreeLearner()
+    clf = learner.train(initial_inputs)
+    print(show_tree(clf, feature_names=None))
