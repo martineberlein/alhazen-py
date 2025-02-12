@@ -1,7 +1,6 @@
 from functools import lru_cache
 from typing import List, Set, Dict
 
-# import numpy
 import pandas
 from fuzzingbook.GrammarFuzzer import is_nonterminal, Grammar
 from fuzzingbook.GrammarFuzzer import DerivationTree
