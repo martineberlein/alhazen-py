@@ -149,8 +149,8 @@ alhazen -v ...
 
 In this repository, you find:
 
-- the _reimplementation_ and [source code](orld/src/alhazen) of **Alhazen-py**, and
-- a complete introduction ([jupyter-notebook](orld/notebooks/guide)) on how to use **Alhazen-py** and how you can add your own _Learners_ and _Generators_.
+- the _reimplementation_ and [source code](old/orld/src/alhazen) of **Alhazen-py**, and
+- a complete introduction ([jupyter-notebook](old/orld/notebooks/guide)) on how to use **Alhazen-py** and how you can add your own _Learners_ and _Generators_.
 
 
 ## Install, Development, Testing, Build
