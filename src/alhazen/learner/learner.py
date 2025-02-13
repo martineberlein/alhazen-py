@@ -1,15 +1,18 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Iterable, Optional
 from sklearn.tree import DecisionTreeClassifier
 import graphviz
 from sklearn import tree
 from pandas import DataFrame, concat
+from fuzzingbook.Parser import EarleyParser
 
 from dbg.data.input import Input
 from dbg.explanation.candidate import ExplanationSet
 from dbg.learner.learner import Learner
 
+from alhazen.data.features import Feature
 from alhazen.data.input import AlhazenInput, OracleResult
+from alhazen.learner.input_specifications import extracting_prediction_paths, InputSpecification, create_new_input_specification, SPECIFICATION_GRAMMAR
 
 
 class AlhazenLearner(Learner):
@@ -98,6 +101,35 @@ class DecisionTreeLearner(SKLearnLearner):
 
     def predict(self, test_input: AlhazenInput, **kwargs):
         pass
+
+    def get_input_specifications(
+        self,
+        decision_tree,
+        all_features: list[Feature],
+        feature_names: list[str],
+        data: DataFrame,
+        **kwargs
+    ) -> list[InputSpecification]:
+        assert isinstance(decision_tree, DecisionTreeClassifier)
+
+        prediction_paths = extracting_prediction_paths(
+            decision_tree, feature_names, data
+        )
+        input_specifications = []
+
+        for r in prediction_paths:
+            parser = EarleyParser(SPECIFICATION_GRAMMAR)
+            try:
+                for tree in parser.parse(r):
+                    input_specifications.append(
+                        create_new_input_specification(tree, all_features)
+                    )
+            except SyntaxError:
+                # Catch Parsing Syntax Errors: num(<term>) in [-900, 0] will fail; Might fix later
+                # For now, inputs following that form will be ignored
+                pass
+
+        return input_specifications
 
 
 def show_tree(clf, feature_names):

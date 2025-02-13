@@ -46,6 +46,10 @@ if __name__ == "__main__":
     initial_inputs = [
         "cos(12)",
         "sqrt(-900)",
+        "sin(-58)",
+        "sqrt(-1)",
+        "tan(1241)",
+        "sqrt(123)",
     ]
 
     initial_inputs = {grammar.parse(inp) for inp in initial_inputs}
@@ -61,4 +65,13 @@ if __name__ == "__main__":
 
     learner = DecisionTreeLearner()
     clf = learner.train(initial_inputs)
-    print(show_tree(clf, feature_names=None))
+    show_tree(clf, feature_names=None)
+
+    all_features = feature_collector.all_features
+    feature_names = [f.name for f in all_features]
+
+    new_input_specifications = learner.get_input_specifications(clf, all_features=all_features, feature_names=feature_names, data=learner.data)
+    for spec in new_input_specifications:
+        print(spec)
+
+
