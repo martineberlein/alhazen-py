@@ -1,6 +1,5 @@
-fuzzingbook~=1.2.2
-graphviz~=0.20.3
-scikit-learn~=1.6.1
+fuzzingbook==1.1
+scikit-learn
 pandas~=2.2.3
 numpy~=2.2.2
-matplotlib~=3.10.0
+# matplotlib~=3.10.0
