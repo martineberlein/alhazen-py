@@ -22,7 +22,7 @@ class AlhazenExplanation(Explanation):
         super().__init__(explanation)
         self.feature_names = feature_names
 
-    def evaluate(self, inputs: set[AlhazenInput]):
+    def evaluate(self, inputs: set[AlhazenInput], **kwargs):
         """
         Evaluates the explanation on a set of inputs.
         """
