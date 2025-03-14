@@ -111,7 +111,7 @@ class NumericFeature(Feature):
 
     @property
     def default_value(self):
-        return np.nan
+        return float("-inf")
 
     @property
     def type(self):

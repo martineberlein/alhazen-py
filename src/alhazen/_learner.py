@@ -30,7 +30,7 @@ class AlhazenExplanation(Explanation):
             if inp in self.cache.keys():
                 continue
             eval_result = self.explanation.predict(
-                pd.DataFrame.from_records([{**inp.features.features}])
+                pd.DataFrame.from_records([{**inp.features.features}]).replace(float("-inf"), 0)
             )[0]
             eval_result = True if eval_result == str(OracleResult.FAILING) else False
             if inp.oracle == OracleResult.FAILING:
@@ -131,6 +131,7 @@ class DecisionTreeLearner(SKLearnLearner):
         if data.empty:
             raise ValueError("No valid data available for training.")
 
+        data.replace(float("-inf"), 0, inplace=True)
         data.fillna(0, inplace=True)
         x_train, y_train = data.drop(columns=["oracle"]), data["oracle"].astype(str)
 
