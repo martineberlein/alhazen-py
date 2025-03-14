@@ -24,6 +24,7 @@ dependencies = [
     "numpy",
     "scikit-learn",
     "fuzzingbook==1.1",
+    "dbg-framework",
 ]
 
 [project.optional-dependencies]

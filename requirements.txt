@@ -1,5 +1,5 @@
 fuzzingbook==1.1
 scikit-learn
-pandas~=2.2.3
-numpy~=2.2.2
-# matplotlib~=3.10.0
+numpy
+pandas
+dbg-framework
