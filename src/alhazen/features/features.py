@@ -4,10 +4,11 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 import numpy as np
 
-from fuzzingbook.GrammarFuzzer import tree_to_string
+from fuzzingbook.GrammarFuzzer import tree_to_string, DerivationTree
+from fuzzingbook.Grammars import reachable_nonterminals
 
-from alhazen import DerivationTree, Grammar, reachable_nonterminals
 from dbg.data.oracle import OracleResult
+from dbg.types import Grammar
 
 
 class Feature(ABC):

@@ -1,11 +1,12 @@
 from functools import lru_cache
-from typing import List, Dict, Optional, Any, Type
+from typing import List, Optional, Type
 from abc import ABC, abstractmethod
 
-from fuzzingbook.GrammarFuzzer import is_nonterminal
+from fuzzingbook.GrammarFuzzer import is_nonterminal, DerivationTree
 
-from alhazen import Grammar, DerivationTree
+from dbg.types import Grammar
 
+from alhazen._data import AlhazenInput
 from alhazen.features.features import (
     ExistenceFeature,
     DerivationFeature,
@@ -23,8 +24,6 @@ DEFAULT_FEATURE_TYPES: List[Type[Feature]] = [
     LengthFeature,
 ]
 
-from dbg.data.input import Input
-
 
 class FeatureCollector(ABC):
     def __init__(
@@ -39,12 +38,12 @@ class FeatureCollector(ABC):
         return factory.build(feature_types)
 
     @abstractmethod
-    def collect_features(self, test_input: Input) -> FeatureVector:
+    def collect_features(self, test_input: AlhazenInput) -> FeatureVector:
         pass
 
 
 class GrammarFeatureCollector(FeatureCollector):
-    def collect_features(self, test_input: Input) -> FeatureVector:
+    def collect_features(self, test_input: AlhazenInput) -> FeatureVector:
         feature_vector = FeatureVector(str(test_input))
 
         for feature in self.features:
