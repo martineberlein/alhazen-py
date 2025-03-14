@@ -38,7 +38,6 @@ if __name__ == "__main__":
         grammar=grammar_alhazen,
         initial_inputs=initial_inputs,
         oracle=oracle,
-        max_iterations=10,
     )
 
     explanations = alhazen.explain()
