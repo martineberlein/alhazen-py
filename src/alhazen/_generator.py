@@ -1,11 +1,11 @@
 import numpy as np
 from itertools import product
 from fuzzingbook.GrammarFuzzer import GrammarFuzzer
+from fuzzingbook.Grammars import Grammar
 
 from dbg.explanation.candidate import ExplanationSet
 from dbg.generator.generator import Generator
 
-from alhazen import Grammar
 from alhazen._data import AlhazenInput
 from alhazen.features.features import Feature
 from alhazen.features.collector import GrammarFeatureCollector

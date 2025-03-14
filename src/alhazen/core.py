@@ -1,4 +1,5 @@
 from typing import Set, Iterable, Any
+from fuzzingbook.Grammars import Grammar
 
 from dbg.core import HypothesisBasedExplainer
 from dbg.explanation.candidate import ExplanationSet
@@ -7,7 +8,6 @@ from dbg.logger import LOGGER
 
 from alhazen._learner import AlhazenLearner
 from alhazen._generator import AlhazenGenerator, HypothesisProducer
-from alhazen import Grammar
 from alhazen._data import AlhazenInput
 from alhazen.features.collector import GrammarFeatureCollector
 

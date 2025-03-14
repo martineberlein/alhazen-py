@@ -36,3 +36,6 @@ class AlhazenInput(Input):
 
     def __str__(self):
         return tree_to_string(self.tree)
+
+
+__all__ = ['AlhazenInput']
