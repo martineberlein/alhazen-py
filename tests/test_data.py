@@ -4,14 +4,12 @@ from typing import Tuple
 from isla.derivation_tree import DerivationTree
 from fuzzingbook.Parser import EarleyParser, Grammar, is_valid_grammar
 
-from alhazen_formalizations.calculator import grammar_alhazen as grammar, prop
-from alhazen.oracle import OracleResult
-from alhazen.feature_collector import Collector
-from alhazen.features import EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE
-from alhazen.input import Input
+from dbg.data.oracle import OracleResult
 
-
-FEATURES = {EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE}
+from alhazen.features.collector import GrammarFeatureCollector
+from alhazen._data import AlhazenInput
+from alhazen.features.features import FeatureVector
+from resources.calculator import grammar, initial_inputs, oracle
 
 
 class TestInputs(unittest.TestCase):
@@ -21,31 +19,26 @@ class TestInputs(unittest.TestCase):
         self.test_inputs = set()
         for inp in inputs:
             self.test_inputs.add(
-                Input(
-                    DerivationTree.from_parse_tree(
-                        next(EarleyParser(grammar).parse(inp))
-                    )
-                )
+                AlhazenInput.from_str(grammar, inp, oracle(inp))
             )
 
-        self.collector = Collector(grammar=grammar, features=FEATURES)
+        self.collector = GrammarFeatureCollector(grammar=grammar)
 
     def test_test_inputs(self):
         inputs = {"sqrt(-900)", "cos(10)"}
-        oracles = [OracleResult.BUG, OracleResult.NO_BUG]
+        oracles = [OracleResult.FAILING, OracleResult.PASSING]
+
         test_inputs = set()
-        for inp, oracle in zip(inputs, oracles):
-            test_input = Input(
-                DerivationTree.from_parse_tree(next(EarleyParser(grammar).parse(inp)))
-            )
-            test_input.oracle = oracle
+        for inp, oracle_ in zip(inputs, oracles):
+            test_input = AlhazenInput.from_str(grammar, inp)
+            test_input.oracle = oracle_
             test_inputs.add(test_input)
 
-        self.assertEqual(inputs, set(map(lambda f: str(f.tree), test_inputs)))
+        self.assertEqual(inputs, set(map(lambda f: str(f), test_inputs)))
 
         for inp, orc in zip(inputs, oracles):
             self.assertIn(
-                (inp, orc), set(map(lambda x: (str(x.tree), x.oracle), test_inputs))
+                (inp, orc), set(map(lambda x: (str(x), x.oracle), test_inputs))
             )
 
         self.assertFalse(
@@ -54,33 +47,30 @@ class TestInputs(unittest.TestCase):
 
     def test_input_execution(self):
         for inp in self.test_inputs:
-            inp.oracle = prop(inp.tree)
+            inp.oracle = oracle(inp)
+            self.assertIsInstance(inp.oracle, OracleResult)
 
     def test_feature_extraction(self):
-        self._all_features = self.collector.get_all_features()
-
         for inp in self.test_inputs:
             inp.features = self.collector.collect_features(inp)
+            self.assertIsNotNone(inp.features)
+            self.assertIsInstance(inp.features, FeatureVector)
 
     def test_hash(self):
-        grammar: Grammar = {
+        grammar_: Grammar = {
             "<start>": ["<number>"],
             "<number>": ["<maybe_minus><one_nine>"],
             "<maybe_minus>": ["-", ""],
             "<one_nine>": [str(i) for i in range(1, 10)],
         }
-        assert is_valid_grammar(grammar=grammar)
+        assert is_valid_grammar(grammar_)
 
         initial_test_inputs = ["-8", "-8"]
 
         test_inputs = set()
         for inp in initial_test_inputs:
             test_inputs.add(
-                Input(
-                    DerivationTree.from_parse_tree(
-                        next(EarleyParser(grammar).parse(inp))
-                    )
-                )
+                AlhazenInput.from_str(grammar_, inp)
             )
 
         self.assertEqual(1, len(test_inputs))

@@ -1,44 +1,28 @@
 import unittest
 
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
+from dbg.explanation.candidate import ExplanationSet
 
-from alhazen import Alhazen
-from alhazen.learner import RandomForestLearner
-from alhazen_formalizations.calculator import (
-    initial_inputs,
-    prop,
-    grammar_alhazen as grammar,
-)
+from alhazen.core import Alhazen
+from alhazen._learner import AlhazenExplanation
+from resources.calculator import initial_inputs, grammar, oracle
 
 
 class TestAlhazen(unittest.TestCase):
+
     def test_initialization(self):
         alhazen = Alhazen(
             initial_inputs=initial_inputs,
             grammar=grammar,
-            evaluation_function=prop,
+            oracle=oracle
         )
-        result = alhazen.run()
+        explanations = alhazen.explain()
+        self.assertIsInstance(explanations, ExplanationSet)
+        self.assertEqual(len(explanations), 1)
 
-        self.assertEqual(len(result), 10)
-        self.assertTrue(
-            all([isinstance(tree, DecisionTreeClassifier) for tree in result])
-        )
-
-    def test_random_forest(self):
-        alhazen = Alhazen(
-            initial_inputs=initial_inputs,
-            grammar=grammar,
-            evaluation_function=prop,
-            learner=RandomForestLearner(),
-        )
-        result = alhazen.run()
-
-        self.assertEqual(len(result), 10)
-        self.assertTrue(
-            all([isinstance(tree, RandomForestClassifier) for tree in result])
-        )
+        for explanation in explanations:
+            self.assertIsInstance(explanation, AlhazenExplanation)
+            self.assertIsInstance(explanation.explanation, DecisionTreeClassifier)
 
 
 if __name__ == "__main__":
